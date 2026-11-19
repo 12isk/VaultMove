@@ -218,6 +218,48 @@ def test_wizard_pages(qtbot, qapp, tmp_path, monkeypatch):
     wz.reject()
 
 
+def test_wizard_start_backup_without_clicking_preview(qtbot, qapp, tmp_path, monkeypatch):
+    """Clicking Start Backup directly must work: it shows the preview first, then sets up."""
+    from vaultmove.app import theme
+    from vaultmove.app.controller import AppController
+    from vaultmove.app.dialogs import PreviewDialog
+    from vaultmove.app.wizard import SetupWizard
+    from vaultmove.core import vault
+    theme.apply(qapp, False)
+    src = tmp_path / "MyDocs"
+    src.mkdir()
+    (src / "a.txt").write_bytes(b"hello")
+    (tmp_path / "usb").mkdir()
+    c = AppController(qapp, str(tmp_path / "cfg"), enable_tray=False, enable_watch=False, enable_timer=False)
+    wz = SetupWizard(c)
+    wz.show()
+    wz.drive.set_dest(str(tmp_path / "usb" / "VaultMove"))
+    if wz.drive.cb_same.isVisible():
+        wz.drive.cb_same.setChecked(True)
+    wz._next()
+    lst = wz.folders.list
+    from PySide6.QtCore import Qt
+    for i in range(lst.count()):  # never scan the real Documents folder in a test
+        lst.item(i).setCheckState(Qt.Unchecked)
+    wz.folders._item(str(src), True)
+    wz._next()
+    assert wz.btn_next.isEnabled(), "Start Backup must be clickable before a preview"
+    # Free up space on without the confirmation: disabled, and the page says why.
+    wz.space.sw.setChecked(True)
+    assert not wz.btn_next.isEnabled() and wz.space.hint.isVisible()
+    wz.space.cb.setChecked(True)
+    assert wz.btn_next.isEnabled() and not wz.space.hint.isVisible()
+    wz.space.sw.setChecked(False)
+    shown = []
+    monkeypatch.setattr(PreviewDialog, "exec", lambda self: shown.append(self) or PreviewDialog.Accepted)
+    with qtbot.waitSignal(wz.finishedSetup, timeout=30000):
+        wz.btn_next.click()
+    assert len(shown) == 1 and shown[0].btn_start.text() == "Start Backup"
+    assert c.cfg.wizard_done
+    assert [s.path for s in c.cfg.sources] == [str(src)]
+    assert vault.read_marker(str(tmp_path / "usb" / "VaultMove"))["uuid"] == c.cfg.vault.uuid
+
+
 def test_french_ui(qtbot, qapp, env):
     from vaultmove.app import theme
     from vaultmove.app.controller import AppController

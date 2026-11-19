@@ -312,6 +312,10 @@ FR = {
         "%1 contient déjà d’autres fichiers. Choisissez un dossier vide ou un disque entier.",
     "%1 cannot be reached.": "%1 est inaccessible.",
     "First backup: %1 files (%2).": "Première sauvegarde : %1 fichiers (%2).",
+    "Tick the confirmation above to continue with “Free up space” turned on.":
+        "Cochez la confirmation ci-dessus pour continuer avec « Libérer de l’espace » activé.",
+    "Preparing preview… %1 files checked": "Préparation de l’aperçu… %1 fichiers vérifiés",
+    "The preview could not be completed: %1": "L’aperçu n’a pas pu aboutir : %1",
     "Space freed: %1 now, %2 after the copies are verified on a later run.":
         "Espace libéré : %1 maintenant, %2 après vérification des copies lors d’un prochain passage.",
 }

@@ -562,6 +562,10 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Libéré après vérification de cette sauvegarde</translation>
     </message>
     <message>
+        <source>Back</source>
+        <translation>Retour</translation>
+    </message>
+    <message>
         <source>VaultMove can remove files from this PC once they are safely on your backup drive. Before removing a file it re-reads both the original and the copy and checks they are identical. The backup drive then holds the only copy, so keep it safe.</source>
         <translation>VaultMove peut retirer des fichiers de ce PC une fois qu’ils sont en sécurité sur votre disque de sauvegarde. Avant de retirer un fichier, il relit l’original et la copie et vérifie qu’ils sont identiques. Le disque de sauvegarde contient alors la seule copie : prenez-en soin.</translation>
     </message>
@@ -902,8 +906,8 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Un aperçu est toujours affiché avant toute action réelle.</translation>
     </message>
     <message>
-        <source>Back</source>
-        <translation>Retour</translation>
+        <source>Tick the confirmation above to continue with “Free up space” turned on.</source>
+        <translation>Cochez la confirmation ci-dessus pour continuer avec « Libérer de l’espace » activé.</translation>
     </message>
     <message>
         <source>Continue</source>
@@ -974,6 +978,10 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Libérer de l’espace pour les fichiers inchangés depuis</translation>
     </message>
     <message>
+        <source>The preview could not be completed: %1</source>
+        <translation>L’aperçu n’a pas pu aboutir : %1</translation>
+    </message>
+    <message>
         <source>Use This Drive</source>
         <translation>Utiliser ce disque</translation>
     </message>
@@ -996,6 +1004,10 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
     <message>
         <source>%1 cannot be reached.</source>
         <translation>%1 est inaccessible.</translation>
+    </message>
+    <message>
+        <source>Preparing preview… %1 files checked</source>
+        <translation>Préparation de l’aperçu… %1 fichiers vérifiés</translation>
     </message>
     <message>
         <source>First backup: %1 files (%2).</source>

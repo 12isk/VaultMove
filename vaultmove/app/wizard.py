@@ -6,7 +6,7 @@ import copy
 import os
 import time
 
-from PySide6.QtCore import QStandardPaths, Qt, Signal
+from PySide6.QtCore import QObject, QStandardPaths, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QListWidget, QListWidgetItem,
                                QMessageBox, QPushButton, QSpinBox, QStackedWidget, QStyle, QVBoxLayout, QWidget)
 
@@ -231,9 +231,15 @@ class SpacePage(QWidget):
         v.addLayout(hbox(self.btn_preview, None))
         self.summary = label(tr("A preview is always shown before anything real happens."), "Subtle", wrap=True)
         v.addWidget(self.summary)
+        self.hint = label(tr("Tick the confirmation above to continue with “Free up space” turned on."), "Warning",
+                          wrap=True)
+        v.addWidget(self.hint)
         v.addStretch(1)
+        self._busy = False
+        self._then_finish = False
         self.sw.toggled.connect(self._toggle)
         self.cb.toggled.connect(lambda _b: self.changed.emit())
+        self.changed.connect(self._update_hint)
         self.days.valueChanged.connect(lambda _v: self._invalidate())
         self.btn_preview.clicked.connect(self.preview)
         self._toggle(False)
@@ -247,30 +253,52 @@ class SpacePage(QWidget):
         self.previewed = False
         self.changed.emit()
 
-    def preview(self):
+    def _update_hint(self):
+        self.hint.setVisible(self.sw.isChecked() and not self.cb.isChecked())
+
+    def preview(self, then_finish: bool = False):
+        if self._busy:
+            return
+        self._busy = True
+        self._then_finish = then_finish
         cfg = self.wiz.draft_config(offload_preview=True)
         dest, state = self.wiz.drive.dest, self.wiz.drive.state
         self.btn_preview.setEnabled(False)
+        self.wiz.btn_next.setEnabled(False)
         self.summary.setText(tr("Preparing preview…"))
+        relay = _Relay(self)
+        relay.progress.connect(self._progress)
+        self._relay = relay
 
         def work():
             if state == "vault":
                 m = vault.read_marker(dest)
                 cfg.vault.uuid = m["uuid"]
                 same = (lambda a, b: winapi.same_physical_disk(a, b))
-                return Engine(cfg, vault_root=dest, same_disk_fn=same).preview()
-            return Engine(cfg).preview_new_vault()
+                return Engine(cfg, vault_root=dest, same_disk_fn=same, progress=relay.progress.emit).preview()
+            return Engine(cfg, progress=relay.progress.emit).preview_new_vault()
 
         run_async(work, self._done, self._err)
 
+    def _progress(self, d):
+        if self._busy:
+            self.summary.setText(tr("Preparing preview… %1 files checked").replace("%1", f"{d.get('done', 0):,}"))
+
     def _err(self, m):
+        self._busy = False
         self.btn_preview.setEnabled(True)
-        self.summary.setText(m.splitlines()[0])
+        self.summary.setText(tr("The preview could not be completed: %1").replace("%1", m.splitlines()[0]))
+        self.changed.emit()
 
     def _done(self, res):
+        self._busy = False
         self.btn_preview.setEnabled(True)
         from .dialogs import PreviewDialog
-        PreviewDialog(res, self).exec()
+        if res.status not in ("ok", "partial"):
+            self._err(res.error or res.status)
+            return
+        dlg = PreviewDialog(res, self, accept_text=tr("Start Backup") if self._then_finish else None)
+        accepted = dlg.exec() == PreviewDialog.Accepted
         c = res.plan.total("copy")
         d = res.plan.total("delete")
         e = res.plan.total("eligible")
@@ -281,9 +309,16 @@ class SpacePage(QWidget):
         self.summary.setText(txt)
         self.previewed = True
         self.changed.emit()
+        if self._then_finish and accepted:
+            self.wiz._finish()
 
     def ok(self) -> bool:
-        return self.previewed and (not self.sw.isChecked() or self.cb.isChecked())
+        """Start Backup is clickable once the choices are valid; it shows the preview first if needed."""
+        return not self._busy and (not self.sw.isChecked() or self.cb.isChecked())
+
+
+class _Relay(QObject):
+    progress = Signal(dict)
 
 
 class SetupWizard(QDialog):
@@ -343,6 +378,8 @@ class SetupWizard(QDialog):
     def _next(self):
         if self.stack.currentIndex() < len(self.pages) - 1:
             self._go(1)
+        elif not self.drive_only and not self.space.previewed:
+            self.space.preview(then_finish=True)   # nothing real happens before the preview is seen
         else:
             self._finish()
 

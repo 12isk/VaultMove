@@ -57,7 +57,7 @@ class PlanModel(QAbstractTableModel):
 
 
 class PreviewDialog(QDialog):
-    def __init__(self, res, parent=None):
+    def __init__(self, res, parent=None, accept_text: str | None = None):
         super().__init__(parent)
         self.setWindowTitle(tr("Preview"))
         self.resize(860, 560)
@@ -102,10 +102,19 @@ class PreviewDialog(QDialog):
         self.filter.currentIndexChanged.connect(lambda _i: self.model.set_filter(self.filter.currentData()))
         if plan.total("delete")[0]:
             self.filter.setCurrentIndex(1)
-        bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.rejected.connect(self.reject)
-        bb.accepted.connect(self.accept)
-        v.addWidget(bb)
+        if accept_text:
+            self.btn_start = primary_button(accept_text)
+            self.btn_start.setFocusPolicy(Qt.StrongFocus)
+            back = QPushButton(tr("Back"))
+            back.clicked.connect(self.reject)
+            self.btn_start.clicked.connect(self.accept)
+            v.addLayout(hbox(None, back, self.btn_start))
+            self.btn_start.setDefault(True)
+        else:
+            bb = QDialogButtonBox(QDialogButtonBox.Close)
+            bb.rejected.connect(self.reject)
+            bb.accepted.connect(self.accept)
+            v.addWidget(bb)
 
 
 # ---------------------------------------------------------------------------------------------- offload
