@@ -96,6 +96,23 @@ command line, refuses any path whose components are reparse points inside the sn
 exits on quit, disconnect or 10 idle minutes. Bytes read from the snapshot go through the same verified `.vmtmp`
 path as any copy.
 
+## Updates (`core/update.py`, `app/updates.py`)
+
+The only code that uses the network, and only after the user clicks **Check for Updates**: no background checks.
+It sends a single `GET https://api.github.com/repos/<UPDATE_REPO>/releases/latest` with a generic User-Agent.
+
+1. Only assets whose URL starts with `https://github.com/<UPDATE_REPO>/releases/download/` are considered.
+2. The asset for this install type (`VaultMove-Setup-*.exe` or `VaultMove-Portable-*.exe`) is streamed to
+   `.part` while hashing. It is refused unless it matches `SHA256SUMS.txt` from the same release.
+3. Installed copies: the Setup runs with `/VERYSILENT /CLOSEAPPLICATIONS` (same AppId, so it's an in-place upgrade),
+   and its `[Run] Check: WizardSilent` entry restarts VaultMove. Portable copies: the new exe is saved next to the old
+   one and started with `--after-update <pid> <old exe>`. It waits for the old process to exit (it holds the
+   single-instance mutex), then deletes only a `VaultMove-Portable-*.exe` in its own folder.
+4. On start, a frozen VaultMove with start-with-Windows on rewrites the Run entry to its own path.
+
+Limit: the checksum comes from the same GitHub release, so it protects against corrupted or swapped downloads but not
+against someone who controls the GitHub account. Code signing (see README) would close that gap.
+
 ## Extending later (out of scope for v1)
 
 Encryption or cloud targets would sit between `copier.write_verified_tmp` (bytes in) and the vault directory

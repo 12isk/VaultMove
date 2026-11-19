@@ -69,3 +69,11 @@ PowerShell: `(Get-Item C:\VMTest\old.txt).LastWriteTime = (Get-Date).AddDays(-90
 16. **Uninstall**: Settings → Apps → VaultMove → Uninstall. Choose whether to keep settings. The backup drive is
     untouched, and the Run entry is gone (`reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 17. **Language**: Settings → Language → Français, restart. All texts are French, including standard buttons.
+18. **In-app update (installed)**: with 1.1.0 installed and a newer release published, go to Settings → Check for
+    Updates. It shows the new version and notes. Click Download and Install: VaultMove closes, upgrades silently and
+    reopens. Settings → version shows the new number; backups and folders are unchanged. Start a backup first:
+    installing is refused while it runs.
+19. **In-app update (portable)**: same from `VaultMove-Portable-1.1.0.exe` on a USB stick. The new exe appears
+    next to it, starts, and the old exe is removed. `VaultMove-Data` is kept.
+20. **This PC card**: the Back Up page shows the drive(s) of your folders with free space; fill a drive above 90 %
+    and the text turns orange ("almost full").

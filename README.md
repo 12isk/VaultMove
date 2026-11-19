@@ -4,7 +4,8 @@ Automatic, versioned backup of your folders to an external drive for Windows 10/
 once a file is safely backed up, verified and old enough, VaultMove can remove the original to free space on
 the PC.
 
-* Native window (PySide6 / Qt Widgets). No browser, no web server, no network access, no telemetry.
+* Native window (PySide6 / Qt Widgets). No browser, no web server, no telemetry. The only network access is
+  **Settings → Check for Updates**, and only when you click it.
 * Backups are plain files on the drive (`VaultMove\data\...`), readable even without VaultMove.
 * Safety rules and the tests that enforce them: [SAFETY.md](SAFETY.md). Design: [ARCHITECTURE.md](ARCHITECTURE.md).
   What still needs a human: [MANUAL_TESTS.md](MANUAL_TESTS.md).
@@ -101,7 +102,31 @@ UI tests run offscreen (`QT_QPA_PLATFORM=offscreen`). The 200k-file performance 
 5. signs (only if certificate secrets exist), builds the Inno Setup installer, prints the size report, uploads the
    artifacts.
 
-To release: bump `__version__` in `vaultmove/__init__.py`, add a `CHANGELOG.md` entry, push a tag `v1.0.1`.
+## Updating
+
+* **From inside VaultMove (1.1.0 and later):** Settings → **Check for Updates…** → **Download and Install**.
+  VaultMove fetches the latest GitHub Release, verifies the file against the release's `SHA256SUMS.txt`, upgrades in
+  place (silent installer, or the new portable exe next to the old one, which then removes the old one) and restarts.
+  Settings, backups and the start-with-Windows choice are kept. Updating is refused while a backup is running.
+* **By hand:** run the new `VaultMove-Setup-x.y.z.exe` over the installed one (in-place upgrade, no uninstall), or
+  replace the portable exe.
+
+## Publishing a release
+
+1. Bump `__version__` in `vaultmove/__init__.py` and add a `## x.y.z` section at the top of `CHANGELOG.md`
+   (it becomes the release notes).
+2. Commit, push, then tag and push the tag:
+
+```bash
+git tag v1.1.0
+```
+
+```bash
+git push origin v1.1.0
+```
+
+CI builds, tests and publishes a GitHub Release with the Setup, the portable exe and `SHA256SUMS.txt`. It refuses to
+publish if the tag doesn't match `__version__`. The in-app updater reads `UPDATE_REPO` in `vaultmove/__init__.py`.
 
 ## Translations
 

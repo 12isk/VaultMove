@@ -260,6 +260,40 @@ def test_wizard_start_backup_without_clicking_preview(qtbot, qapp, tmp_path, mon
     assert vault.read_marker(str(tmp_path / "usb" / "VaultMove"))["uuid"] == c.cfg.vault.uuid
 
 
+def test_this_pc_card_shows_storage(qtbot, ctrl):
+    ctrl.show_window()
+    tab = ctrl.window.backup_tab
+    qtbot.waitExposed(ctrl.window)
+    rows = [r for r in tab._pc_rows if r[0].isVisible()]
+    assert rows, "This PC card shows at least one drive"
+    name, bar, free = rows[0]
+    assert "(" in name.text() and ":" in name.text()
+    assert "free of" in free.text()
+    assert 0 < bar.value() <= 1000
+
+
+def test_update_dialog_offers_newer_version(qtbot, ctrl, monkeypatch):
+    from vaultmove.app import updates as upd_ui
+    from vaultmove.core import update
+    rel = update.Release("9.9.9", "v9.9.9", "Bug fixes", "https://github.com/x", {
+        "VaultMove-Setup-9.9.9.exe": update.DOWNLOAD_PREFIX + "v9.9.9/VaultMove-Setup-9.9.9.exe",
+        "SHA256SUMS.txt": update.DOWNLOAD_PREFIX + "v9.9.9/SHA256SUMS.txt"})
+    monkeypatch.setattr(update, "check_latest", lambda: rel)
+    monkeypatch.setattr(update, "install_mode", lambda: "installer")
+    d = upd_ui.UpdateDialog(ctrl)
+    d.show()
+    qtbot.waitUntil(lambda: d.btn_install.isVisible(), timeout=10000)
+    assert "9.9.9" in d.status.text()
+    shot(d, "14_update_available")
+    d.reject()
+    monkeypatch.setattr(update, "check_latest", lambda: update.Release("1.0.0", "v1.0.0", "", "", {}))
+    d2 = upd_ui.UpdateDialog(ctrl)
+    d2.show()
+    qtbot.waitUntil(lambda: "up to date" in d2.status.text(), timeout=10000)
+    assert not d2.btn_install.isVisible()
+    d2.reject()
+
+
 def test_french_ui(qtbot, qapp, env):
     from vaultmove.app import theme
     from vaultmove.app.controller import AppController

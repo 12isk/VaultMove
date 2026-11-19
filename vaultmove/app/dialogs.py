@@ -322,6 +322,12 @@ class SettingsDialog(QDialog):
         self.btn_rebuild.clicked.connect(self._rebuild)
         self.btn_logs.clicked.connect(lambda: QDesktopServices.openUrl(
             QUrl.fromLocalFile(os.path.join(ctrl.cfg_dir, "logs"))))
+        from .. import __version__
+        self.btn_update = QPushButton(tr("Check for Updates…"))
+        self.btn_update.setToolTip(tr("Connects to GitHub only when you click"))
+        self.btn_update.clicked.connect(self._updates)
+        v.addLayout(hbox(label(tr("VaultMove version %1").replace("%1", __version__), "Subtle"), None,
+                         self.btn_update))
         v.addStretch(1)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._save)
@@ -355,6 +361,10 @@ class SettingsDialog(QDialog):
         if lang_changed:
             QMessageBox.information(self, "VaultMove", tr("The new language is used after VaultMove restarts."))
         self.accept()
+
+    def _updates(self):
+        from .updates import UpdateDialog
+        UpdateDialog(self.ctrl, self).exec()
 
     def _prune(self):
         if not self.ctrl.vault_root or self.ctrl.service.busy:

@@ -62,6 +62,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\VaultMove.exe"; Description: "{cm:OpenApp}"; Flags: nowait postinstall skipifsilent
+; In-app update (silent upgrade): bring VaultMove back up afterwards.
+Filename: "{app}\VaultMove.exe"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM VaultMove.exe /F"; Flags: runhidden; RunOnceId: "StopVaultMove"

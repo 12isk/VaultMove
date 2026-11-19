@@ -39,7 +39,16 @@ def main(argv=None) -> int:
     p.add_argument("--portable", action="store_true")
     p.add_argument("--config-dir")
     p.add_argument("--theme", choices=["light", "dark"])
+    p.add_argument("--after-update", nargs=2, metavar=("OLD_PID", "OLD_EXE"))
     args, _rest = p.parse_known_args(argv)
+    if args.after_update:
+        # New portable exe: wait for the old one to quit (it holds the single-instance
+        # mutex), then remove it. Settings live next to the exe and are shared.
+        from ..core.update import finish_portable_update
+        try:
+            finish_portable_update(int(args.after_update[0]), args.after_update[1])
+        except Exception:
+            pass
 
     from ..core import config as cfgmod
     if args.config_dir:
@@ -140,7 +149,14 @@ def selftest(out_path: str) -> int:
             app.processEvents()
             time.sleep(0.02)
         lines.append(f"backup: {done.get('status')} copied={(done.get('stats') or {}).get('copied')}")
-        ok = done.get("status") == "ok"
+        # The updater needs TLS in the bundle (no network is used here).
+        import ssl
+        import urllib.request  # noqa: F401
+        from ..core import update
+        ctx = ssl.create_default_context()
+        certs = len(ctx.get_ca_certs()) + len(ssl.enum_certificates("ROOT"))
+        lines.append(f"updater: {ssl.OPENSSL_VERSION}; root certs: {certs}; mode: {update.install_mode()}")
+        ok = done.get("status") == "ok" and certs > 0
         lines.append("RESULT " + ("OK" if ok else "FAIL"))
     except Exception:
         lines.append(traceback.format_exc())

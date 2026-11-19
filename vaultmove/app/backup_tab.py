@@ -73,6 +73,14 @@ class BackupTab(QScrollArea):
         # ---------------------------------------------------------- drive + free space
         mid = QHBoxLayout()
         mid.setSpacing(16)
+        self.pc_card = Card()
+        self.pc_card.add(label(tr("This PC"), "H2"))
+        self.pc_box = QVBoxLayout()
+        self.pc_box.setSpacing(6)
+        self.pc_card.add(self.pc_box)
+        self.pc_card.layout().addStretch(1)
+        self._pc_rows: list = []
+        mid.addWidget(self.pc_card, 1)
         self.drive_card = Card()
         self.drive_card.add(label(tr("Backup drive"), "H2"))
         self.lb_drive = label("", "Stat")
@@ -89,6 +97,7 @@ class BackupTab(QScrollArea):
         self.drive_card.layout().addStretch(1)
         self.drive_card.add(hbox(None, self.btn_drive))
         mid.addWidget(self.drive_card, 1)
+        v.addLayout(mid)
 
         self.free_card = Card()
         self.free_card.add(label(tr("Free up space"), "H2"))
@@ -104,8 +113,7 @@ class BackupTab(QScrollArea):
         self.free_card.layout().addStretch(1)
         self.btn_off_preview = QPushButton(tr("Preview…"))
         self.free_card.add(hbox(None, self.btn_off_preview))
-        mid.addWidget(self.free_card, 1)
-        v.addLayout(mid)
+        v.addWidget(self.free_card)
 
         # ---------------------------------------------------------- folders
         self.folders_card = Card(shadow=True)
@@ -194,6 +202,8 @@ class BackupTab(QScrollArea):
             self.lb_drive_free.setText(tr("Connect the drive and VaultMove will back up automatically.")
                                        if c.vault.uuid else tr("No backup drive chosen yet."))
 
+        self._refresh_pc(c)
+
         # Free-up-space card
         self.sw_offload.blockSignals(True)
         self.sw_offload.setChecked(c.offload_armed())
@@ -229,6 +239,57 @@ class BackupTab(QScrollArea):
             self.list.addItem(it)
         if 0 <= sel < self.list.count():
             self.list.setCurrentRow(sel)
+
+    def pc_drives(self, c) -> list[tuple[str, str]]:
+        """(root, display name) of the drives holding the backed-up folders (system drive if none)."""
+        roots = []
+        for s in c.sources:
+            r = os.path.splitdrive(s.path)[0] + "\\"
+            if os.path.isdir(r) and r.upper() not in [x.upper() for x in roots]:
+                roots.append(r)
+        if not roots:
+            roots = [winapi.system_drive()]
+        out = []
+        for r in roots:
+            lab = winapi.volume_info(r).get("label") or tr("Local disk")
+            out.append((r, f"{lab} ({r.rstrip(chr(92))})"))
+        return out
+
+    def _refresh_pc(self, c):
+        drives = self.pc_drives(c)
+        while len(self._pc_rows) < len(drives):
+            name = label("", "Stat")
+            bar = QProgressBar()
+            bar.setObjectName("Thin")
+            bar.setTextVisible(False)
+            bar.setRange(0, 1000)
+            free = label("", "Subtle", wrap=True)
+            for w in (name, bar, free):
+                self.pc_box.addWidget(w)
+            self._pc_rows.append((name, bar, free))
+        for i, (name, bar, free) in enumerate(self._pc_rows):
+            vis = i < len(drives)
+            for w in (name, bar, free):
+                w.setVisible(vis)
+            if not vis:
+                continue
+            root, disp = drives[i]
+            name.setText(disp)
+            name.setAccessibleName(tr("Drive on this PC"))
+            bar.setAccessibleName(tr("Usage of %1").replace("%1", disp))
+            try:
+                u = shutil.disk_usage(root)
+            except OSError:
+                free.setText("")
+                continue
+            bar.setValue(int(1000 * (u.total - u.free) / max(1, u.total)))
+            txt = tr("%1 free of %2").replace("%1", human_size(u.free)).replace("%2", human_size(u.total))
+            if u.free < 0.1 * u.total:
+                txt += " · " + tr("almost full")
+            free.setText(txt)
+            free.setObjectName("Warning" if u.free < 0.1 * u.total else "Subtle")
+            free.style().unpolish(free)
+            free.style().polish(free)
 
     def _on_progress(self, d: dict):
         if not self.progress.isVisible():

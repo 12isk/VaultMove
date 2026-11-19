@@ -1,12 +1,15 @@
 # Changelog
 
-## Fixes after first real use
+## 1.1.0
 
+* **Check for Updates** (Settings): downloads the new version from this project's GitHub Releases, verifies its
+  SHA-256 checksum, and upgrades in place (installed or portable). Settings and backups are kept. VaultMove only
+  goes online when you click the button.
+* **This PC** card on the Back Up page: used and free space of the drive(s) holding your backed-up folders.
 * **Safety:** files in a OneDrive folder could be freed (sent to the Recycle Bin), which also removes them from
   OneDrive. Cause: Windows disguises OneDrive placeholders from apps that don't opt in, so the folder looked
   ordinary. VaultMove now opts in and never frees space in any cloud-synced folder (still backs it up).
-* Wizard: Start Backup works without clicking Preview first (it shows the preview, then starts).
-* Test: the cancel test no longer depends on machine speed.
+* Setup wizard: Start Backup works without clicking Preview first (it shows the preview, then starts).
 
 ## 1.0.0 (unreleased)
 

@@ -88,6 +88,10 @@
         <translation>Choisir un dossier à sauvegarder</translation>
     </message>
     <message>
+        <source>This PC</source>
+        <translation>Ce PC</translation>
+    </message>
+    <message>
         <source>Backup drive</source>
         <translation>Disque de sauvegarde</translation>
     </message>
@@ -120,6 +124,14 @@
         <translation>Aucun dossier pour l’instant. Cliquez sur + pour en ajouter un.</translation>
     </message>
     <message>
+        <source>Local disk</source>
+        <translation>Disque local</translation>
+    </message>
+    <message>
+        <source>Drive on this PC</source>
+        <translation>Disque de ce PC</translation>
+    </message>
+    <message>
         <source>The preview could not be completed. See the activity log.</source>
         <translation>L’aperçu n’a pas pu aboutir. Consultez le journal d’activité.</translation>
     </message>
@@ -144,6 +156,10 @@
         <translation>synchronisé par OneDrive ou un autre service cloud : sauvegardé, jamais libéré</translation>
     </message>
     <message>
+        <source>almost full</source>
+        <translation>presque plein</translation>
+    </message>
+    <message>
         <source>Stop backing up “%1”?
 
 Copies already on the backup drive are kept and can still be restored.</source>
@@ -158,6 +174,10 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
     <message>
         <source>On. Originals are removed only after their copy on the backup drive is verified.</source>
         <translation>Activé. Les originaux ne sont retirés qu’après vérification de leur copie sur le disque de sauvegarde.</translation>
+    </message>
+    <message>
+        <source>Usage of %1</source>
+        <translation>Occupation de %1</translation>
     </message>
     <message>
         <source>Preview not available: %1</source>
@@ -528,6 +548,14 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
         <translation>Ouvrir le dossier des journaux</translation>
     </message>
     <message>
+        <source>Check for Updates…</source>
+        <translation>Rechercher des mises à jour…</translation>
+    </message>
+    <message>
+        <source>Connects to GitHub only when you click</source>
+        <translation>Se connecte à GitHub uniquement quand vous cliquez</translation>
+    </message>
+    <message>
         <source>Delete Old Versions</source>
         <translation>Supprimer les anciennes versions</translation>
     </message>
@@ -636,6 +664,10 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
     <message>
         <source>%1 files</source>
         <translation>%1 fichiers</translation>
+    </message>
+    <message>
+        <source>VaultMove version %1</source>
+        <translation>VaultMove version %1</translation>
     </message>
     <message>
         <source>Recycle Bin</source>
@@ -846,6 +878,90 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Reprendre les sauvegardes</translation>
     </message>
     <message>
+        <source>Check for Updates</source>
+        <translation>Rechercher des mises à jour</translation>
+    </message>
+    <message>
+        <source>Checking GitHub for a newer version…</source>
+        <translation>Recherche d’une nouvelle version sur GitHub…</translation>
+    </message>
+    <message>
+        <source>Update status</source>
+        <translation>État de la mise à jour</translation>
+    </message>
+    <message>
+        <source>What's new</source>
+        <translation>Nouveautés</translation>
+    </message>
+    <message>
+        <source>Open Release Page</source>
+        <translation>Ouvrir la page de la version</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Download and Install</source>
+        <translation>Télécharger et installer</translation>
+    </message>
+    <message>
+        <source>Verified. Installing and restarting VaultMove…</source>
+        <translation>Vérifié. Installation et redémarrage de VaultMove…</translation>
+    </message>
+    <message>
+        <source>VaultMove updates</source>
+        <translation>Mises à jour de VaultMove</translation>
+    </message>
+    <message>
+        <source>VaultMove only contacts GitHub when you click Check for Updates. The download is checked against its published SHA-256 checksum before anything is installed. Your settings and backups are kept.</source>
+        <translation>VaultMove ne contacte GitHub que lorsque vous cliquez sur Rechercher des mises à jour. Le téléchargement est comparé à sa somme de contrôle SHA-256 publiée avant toute installation. Vos réglages et vos sauvegardes sont conservés.</translation>
+    </message>
+    <message>
+        <source>A backup is running. Install the update when it has finished.</source>
+        <translation>Une sauvegarde est en cours. Installez la mise à jour quand elle sera terminée.</translation>
+    </message>
+    <message>
+        <source>a backup started; try again when it has finished</source>
+        <translation>une sauvegarde a commencé ; réessayez quand elle sera terminée</translation>
+    </message>
+    <message>
+        <source>Could not check for updates: %1</source>
+        <translation>Impossible de rechercher des mises à jour : %1</translation>
+    </message>
+    <message>
+        <source>Version %1 is available.</source>
+        <translation>La version %1 est disponible.</translation>
+    </message>
+    <message>
+        <source>You are running from source: update with git pull.</source>
+        <translation>Vous utilisez le code source : mettez à jour avec git pull.</translation>
+    </message>
+    <message>
+        <source>This release has no download for your version yet.</source>
+        <translation>Cette version ne propose pas encore de téléchargement pour votre installation.</translation>
+    </message>
+    <message>
+        <source>Downloading %1…</source>
+        <translation>Téléchargement de %1…</translation>
+    </message>
+    <message>
+        <source>Downloading… %1</source>
+        <translation>Téléchargement… %1</translation>
+    </message>
+    <message>
+        <source>The update could not be installed: %1</source>
+        <translation>La mise à jour n’a pas pu être installée : %1</translation>
+    </message>
+    <message>
+        <source>You are using version %1.</source>
+        <translation>Vous utilisez la version %1.</translation>
+    </message>
+    <message>
+        <source>VaultMove is up to date (latest version: %1).</source>
+        <translation>VaultMove est à jour (dernière version : %1).</translation>
+    </message>
+    <message>
         <source>never</source>
         <translation>jamais</translation>
     </message>
@@ -964,10 +1080,6 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
     <message>
         <source>USB drive</source>
         <translation>Disque USB</translation>
-    </message>
-    <message>
-        <source>Local disk</source>
-        <translation>Disque local</translation>
     </message>
     <message>
         <source>Windows drive</source>

@@ -49,6 +49,12 @@ class AppController(QObject):
         if self.cfg.first_use_at is None:
             self.cfg.first_use_at = time.time()
             self.save()
+        if self.cfg.start_with_windows and cfgmod.is_frozen():
+            # Keep the Run entry pointing at this exe (a portable update changes its name).
+            try:
+                startup.set_enabled(True, portable)
+            except OSError:
+                pass
         self.window = None
         self.vault_root: str | None = None
         self.last_result: dict | None = None
