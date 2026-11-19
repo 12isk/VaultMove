@@ -173,6 +173,64 @@ def test_excluded_after_backup_is_not_offloaded(env):
     assert os.path.exists(p)
 
 
+def test_onedrive_folder_is_backed_up_but_never_offloaded(env, monkeypatch):
+    """Regression: files in a OneDrive folder without placeholder attributes were freed,
+    which also deletes them in the cloud. Registered sync folders are now off-limits."""
+    p = env.write("Desktop shortcut.lnk", b"lnk", age_days=100)
+    monkeypatch.setenv("OneDrive", env.src)
+    env.arm_offload(days=30)
+    r1 = env.run()
+    assert r1.stats.copied == 1
+    prev = env.run(dry_run=True)
+    assert prev.plan.total("delete") == (0, 0)
+    assert any("cloud" in m for m in prev.messages)
+    env.run()
+    env.run()
+    assert os.path.exists(p)
+    idx = env.index()
+    assert idx.current_copy(env.sid, "Desktop shortcut.lnk").offloaded_at is None
+    idx.close()
+
+
+def test_registered_sync_root_parent_blocks_offload(env, monkeypatch):
+    p = env.write("photo.jpg", b"jpg", age_days=100)
+    parent = os.path.dirname(env.src)  # e.g. a Dropbox/Google Drive root above the source
+    monkeypatch.setattr(fsutil, "cloud_sync_roots", lambda: [parent])
+    env.arm_offload(days=30)
+    env.run()
+    env.run()
+    assert os.path.exists(p)
+
+
+def _onedrive_folders():
+    home = os.path.expanduser("~")
+    out = []
+    try:
+        for n in os.listdir(home):
+            p = os.path.join(home, n)
+            if n.lower().startswith("onedrive") and os.path.isdir(p):
+                out.append(p)
+    except OSError:
+        pass
+    return out
+
+
+@pytest.mark.skipif(not _onedrive_folders(), reason="no OneDrive folder on this machine")
+def test_real_onedrive_folders_are_detected_even_without_the_env_var(monkeypatch):
+    """Regression: a OneDrive folder whose account is signed out is not in the registry and
+    Windows disguises its placeholders; it must still be detected (via the exposed cloud tags)."""
+    for v in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial"):
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr(fsutil, "cloud_sync_roots", lambda: [])
+    for od in _onedrive_folders():
+        if fsutil._has_cloud_tag(od):  # an actual sync root (not just a folder named OneDrive)
+            sub = [os.path.join(od, n) for n in os.listdir(od) if os.path.isdir(os.path.join(od, n))]
+            assert fsutil.in_cloud_sync(os.path.join(od, "x.lnk"))
+            for s in sub[:3]:
+                assert fsutil.in_cloud_sync(os.path.join(s, "x.lnk")), s
+    assert not fsutil.in_cloud_sync(os.path.join(os.environ.get("SystemDrive", "C:") + "\\", "NotCloud", "x"))
+
+
 def test_offloaded_copy_matches_original_hash(env):
     p = env.write("old.bin", os.urandom(2_000_000), age_days=100)
     h = sha_file(p)

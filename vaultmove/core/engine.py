@@ -25,6 +25,8 @@ from .index import Copy, Index
 from .scanner import ScanReport, walk
 
 FREE_SPACE_RESERVE = 64 * 1024 * 1024
+CLOUD_MSG = ("Space will not be freed in {path}: it is synced by OneDrive or another cloud service, and deleting "
+             "a file there would also delete it in the cloud. It is still backed up.")
 COMMIT_EVERY_OPS = 200
 COMMIT_EVERY_SECONDS = 2.0
 
@@ -200,6 +202,9 @@ class Engine:
                 if not os.path.isdir(fsutil.lp(s.path)):
                     continue
                 days = self._offload_days_for_preview(s)
+                if days and fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+                    res.messages.append(CLOUD_MSG.format(path=s.path))
+                    days = None
                 for e in walk(s.path, Matcher(self.cfg.excludes + s.excludes), [], self.cancel):
                     res.stats.scanned += 1
                     abs_p = fsutil.join(s.path, e.rel)
@@ -549,6 +554,9 @@ class Engine:
                 days = self._offload_days_for_preview(s)
                 if not days or not os.path.isdir(fsutil.lp(s.path)):
                     continue
+                if fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+                    res.messages.append(CLOUD_MSG.format(path=s.path))
+                    continue
                 if self.same_disk_fn(vroot, s.path) is not False:
                     res.messages.append(f"Space will not be freed in {s.path}: the backup drive is not "
                                         "confirmed to be a different physical disk.")
@@ -575,6 +583,9 @@ class Engine:
         for s in sources:
             days = self.cfg.source_offload_days(s)
             if not days or not os.path.isdir(fsutil.lp(s.path)):
+                continue
+            if fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+                self.log(CLOUD_MSG.format(path=s.path))
                 continue
             same = self.same_disk_fn(vroot, s.path)
             if same is not False:

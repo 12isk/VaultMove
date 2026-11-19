@@ -13,9 +13,20 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from . import fsutil
+from . import fsutil, winapi
 from .errors import Cancelled
 from .excludes import Matcher
+
+
+class _WithTag:
+    """A stat result with the reparse tag filled in from FindFirstFileW."""
+
+    def __init__(self, st, tag):
+        self._st = st
+        self.st_reparse_tag = tag
+
+    def __getattr__(self, name):
+        return getattr(self._st, name)
 
 
 @dataclass
@@ -71,7 +82,10 @@ def walk(root: str, matcher: Matcher, avoid: list[str], cancel=None, report: Sca
                     st = entry.stat(follow_symlinks=False)
                     if (fsutil.attrs_of(st) & fsutil.FILE_ATTRIBUTE_REPARSE_POINT
                             and not getattr(st, "st_reparse_tag", 0)):
-                        st = os.lstat(fsutil.lp(fsutil.join(root, rel)))
+                        # os.lstat hides non-link reparse tags; ask Windows directly.
+                        fd = winapi.find_data(fsutil.join(root, rel))
+                        if fd is not None and fd[1]:
+                            st = _WithTag(st, fd[1])
                 except OSError as e:
                     report.dir_errors.append((rel, str(e)))
                     continue

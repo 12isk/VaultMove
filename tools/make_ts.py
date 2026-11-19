@@ -314,7 +314,9 @@ FR = {
     "First backup: %1 files (%2).": "Première sauvegarde : %1 fichiers (%2).",
     "Tick the confirmation above to continue with “Free up space” turned on.":
         "Cochez la confirmation ci-dessus pour continuer avec « Libérer de l’espace » activé.",
-    "Preparing preview… %1 files checked": "Préparation de l’aperçu… %1 fichiers vérifiés",
+    "synced by OneDrive or another cloud service: backed up, never freed":
+        "synchronisé par OneDrive ou un autre service cloud : sauvegardé, jamais libéré",
+    "Preparing preview… %1 files checked":"Préparation de l’aperçu… %1 fichiers vérifiés",
     "The preview could not be completed: %1": "L’aperçu n’a pas pu aboutir : %1",
     "Space freed: %1 now, %2 after the copies are verified on a later run.":
         "Espace libéré : %1 maintenant, %2 après vérification des copies lors d’un prochain passage.",

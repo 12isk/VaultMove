@@ -136,6 +136,14 @@
         <translation>Aucun disque de sauvegarde choisi pour l’instant.</translation>
     </message>
     <message>
+        <source>not available</source>
+        <translation>indisponible</translation>
+    </message>
+    <message>
+        <source>synced by OneDrive or another cloud service: backed up, never freed</source>
+        <translation>synchronisé par OneDrive ou un autre service cloud : sauvegardé, jamais libéré</translation>
+    </message>
+    <message>
         <source>Stop backing up “%1”?
 
 Copies already on the backup drive are kept and can still be restored.</source>
@@ -150,10 +158,6 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
     <message>
         <source>On. Originals are removed only after their copy on the backup drive is verified.</source>
         <translation>Activé. Les originaux ne sont retirés qu’après vérification de leur copie sur le disque de sauvegarde.</translation>
-    </message>
-    <message>
-        <source>not available</source>
-        <translation>indisponible</translation>
     </message>
     <message>
         <source>Preview not available: %1</source>

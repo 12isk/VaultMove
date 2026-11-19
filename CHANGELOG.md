@@ -1,5 +1,13 @@
 # Changelog
 
+## Fixes after first real use
+
+* **Safety:** files in a OneDrive folder could be freed (sent to the Recycle Bin), which also removes them from
+  OneDrive. Cause: Windows disguises OneDrive placeholders from apps that don't opt in, so the folder looked
+  ordinary. VaultMove now opts in and never frees space in any cloud-synced folder (still backs it up).
+* Wizard: Start Backup works without clicking Preview first (it shows the preview, then starts).
+* Test: the cancel test no longer depends on machine speed.
+
 ## 1.0.0 (unreleased)
 
 First version.

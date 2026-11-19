@@ -413,6 +413,58 @@ def send_to_recycle_bin(path: str) -> None:
         raise OSError("file still present after Recycle Bin operation")
 
 
+# --------------------------------------------------------------------------- reparse tags
+
+
+def find_data(path: str) -> tuple[int, int] | None:
+    """(attributes, reparse tag) as stored in the directory entry, via FindFirstFileW.
+
+    Python's os.lstat() traverses non-link reparse points (e.g. OneDrive cloud
+    folders) and reports attributes without FILE_ATTRIBUTE_REPARSE_POINT and a
+    tag of 0, so it cannot be used to detect cloud-synced folders.
+    """
+    if not IS_WIN:
+        return None
+    from .fsutil import lp
+    data = wintypes.WIN32_FIND_DATAW()
+    h = k32.FindFirstFileW(lp(path.rstrip("\\")), ctypes.byref(data))
+    if h in (None, INVALID_HANDLE_VALUE):
+        return None
+    k32.FindClose(h)
+    attrs = int(data.dwFileAttributes)
+    tag = int(data.dwReserved0) if attrs & 0x400 else 0
+    return attrs, tag
+
+
+def expose_cloud_placeholders() -> bool:
+    """Make OneDrive/cloud placeholders visible to this process as what they are.
+
+    By default the Windows cloud-files driver *disguises* placeholders from
+    programs that have not opted in: their reparse point and tag are hidden, so
+    a OneDrive folder looks like an ordinary folder. VaultMove must see them to
+    never free space in a synced folder. This changes only how they are
+    reported to this process; it does not download or modify anything.
+    """
+    if not IS_WIN:
+        return False
+    try:
+        ntdll = ctypes.WinDLL("ntdll")
+        fn = ntdll.RtlSetProcessPlaceholderCompatibilityMode
+    except (OSError, AttributeError):
+        return False  # Windows older than 10 1709
+    fn.argtypes = [ctypes.c_char]
+    fn.restype = ctypes.c_char
+    fn(ctypes.c_char(2))  # PHCM_EXPOSE_PLACEHOLDERS
+    return True
+
+
+if IS_WIN:
+    expose_cloud_placeholders()
+    k32.FindFirstFileW.restype = wintypes.HANDLE
+    k32.FindFirstFileW.argtypes = [wintypes.LPCWSTR, ctypes.POINTER(wintypes.WIN32_FIND_DATAW)]
+    k32.FindClose.argtypes = [wintypes.HANDLE]
+
+
 # --------------------------------------------------------------------------- misc
 
 

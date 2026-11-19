@@ -35,7 +35,7 @@ def check_source_state(abs_src: str, c, days: int, now: float) -> OffloadDecisio
         return OffloadDecision(False, f"cannot read original: {e}")
     if fsutil.is_link_like(st):
         return OffloadDecision(False, "is a link")
-    if fsutil.is_cloud_placeholder(st):
+    if fsutil.is_cloud_placeholder(st) or fsutil.in_cloud_sync(abs_src):
         return OffloadDecision(False, "cloud-synced file (deleting would delete it in the cloud)")
     if fsutil.attrs_of(st) & (fsutil.FILE_ATTRIBUTE_READONLY | fsutil.FILE_ATTRIBUTE_SYSTEM):
         return OffloadDecision(False, "read-only or system file")

@@ -213,9 +213,13 @@ class BackupTab(QScrollArea):
         sel = self.list.currentRow()
         self.list.clear()
         icon = self.style().standardIcon(QStyle.SP_DirIcon)
+        cloud_roots = fsutil.cloud_sync_roots()
         for s in c.sources:
             ok = os.path.isdir(s.path)
-            it = QListWidgetItem(icon, s.path if ok else s.path + "   — " + tr("not available"))
+            text = s.path if ok else s.path + "   — " + tr("not available")
+            if ok and fsutil.in_cloud_sync(fsutil.join(s.path, "x"), cloud_roots):
+                text += "   — " + tr("synced by OneDrive or another cloud service: backed up, never freed")
+            it = QListWidgetItem(icon, text)
             it.setData(Qt.UserRole, s.path)
             it.setToolTip(s.path)
             self.list.addItem(it)

@@ -99,7 +99,8 @@ def is_link_like(st) -> bool:
 def is_cloud_placeholder(st) -> bool:
     """OneDrive-style files. Backed up when local, never offloaded (deleting syncs to cloud)."""
     a = attrs_of(st)
-    if a & (FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS | FILE_ATTRIBUTE_RECALL_ON_OPEN):
+    if a & (FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS | FILE_ATTRIBUTE_RECALL_ON_OPEN
+            | 0x00080000 | 0x00100000):  # + OneDrive pinned / unpinned
         return True
     if a & FILE_ATTRIBUTE_REPARSE_POINT:
         tag = getattr(st, "st_reparse_tag", 0) or 0
@@ -111,6 +112,107 @@ def is_online_only(st) -> bool:
     """File content is not on this PC; reading it would trigger a download."""
     a = attrs_of(st)
     return bool(a & (FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS))
+
+
+def cloud_sync_roots() -> list[str]:
+    """Folders kept in sync by OneDrive or another cloud provider.
+
+    Deleting a file in one of these deletes it in the cloud and on every other
+    synced device, so VaultMove never frees space there. Sources: the OneDrive
+    environment variables, OneDrive's account folders, and every sync root that
+    a provider has registered with Windows (Dropbox, Google Drive, iCloud...).
+    """
+    roots = []
+    for var in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial"):
+        v = os.environ.get(var)
+        if v:
+            roots.append(v)
+    if IS_WIN:
+        import winreg
+
+        def values(hive, path, want=None):
+            out = []
+            try:
+                with winreg.OpenKey(hive, path) as k:
+                    i = 0
+                    while True:
+                        try:
+                            name, val, typ = winreg.EnumValue(k, i)
+                        except OSError:
+                            break
+                        i += 1
+                        if typ in (winreg.REG_SZ, winreg.REG_EXPAND_SZ) and isinstance(val, str) \
+                                and (want is None or name == want):
+                            out.append(os.path.expandvars(val))
+            except OSError:
+                pass
+            return out
+
+        def subkeys(hive, path):
+            out = []
+            try:
+                with winreg.OpenKey(hive, path) as k:
+                    i = 0
+                    while True:
+                        try:
+                            out.append(winreg.EnumKey(k, i))
+                        except OSError:
+                            break
+                        i += 1
+            except OSError:
+                pass
+            return out
+
+        acc = r"Software\Microsoft\OneDrive\Accounts"
+        for a in subkeys(winreg.HKEY_CURRENT_USER, acc):
+            roots += values(winreg.HKEY_CURRENT_USER, acc + "\\" + a, "UserFolder")
+        srm = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SyncRootManager"
+        for prov in subkeys(winreg.HKEY_LOCAL_MACHINE, srm):
+            roots += values(winreg.HKEY_LOCAL_MACHINE, srm + "\\" + prov + "\\UserSyncRoots")
+    out = []
+    for r in roots:
+        if r and len(r) > 3 and os.path.isabs(r):
+            try:
+                out.append(normroot(r))
+            except (OSError, ValueError):
+                pass
+    return sorted(set(out))
+
+
+FILE_ATTRIBUTE_PINNED = 0x00080000
+FILE_ATTRIBUTE_UNPINNED = 0x00100000
+
+
+def _has_cloud_tag(path: str) -> bool:
+    """Ask Windows directly (os.lstat hides cloud reparse points; see winapi.find_data)."""
+    from . import winapi
+    fd = winapi.find_data(path)
+    if fd is None:
+        return False
+    attrs, tag = fd
+    if attrs & (FILE_ATTRIBUTE_PINNED | FILE_ATTRIBUTE_UNPINNED | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+                | FILE_ATTRIBUTE_RECALL_ON_OPEN):
+        return True
+    return bool(attrs & FILE_ATTRIBUTE_REPARSE_POINT) and (tag & IO_REPARSE_TAG_CLOUD_MASK) == IO_REPARSE_TAG_CLOUD
+
+
+def in_cloud_sync(path: str, roots: list[str] | None = None) -> bool:
+    """True if `path` is inside a cloud-synced folder (registered root, or any
+    parent folder carrying a cloud-files reparse tag)."""
+    roots = cloud_sync_roots() if roots is None else roots
+    if any(is_within(path, r) for r in roots):
+        return True
+    if _has_cloud_tag(strip_lp(path)):
+        return True
+    d = os.path.dirname(strip_lp(path))
+    while d and len(d) > 3:
+        if _has_cloud_tag(d):
+            return True
+        nd = os.path.dirname(d)
+        if nd == d:
+            break
+        d = nd
+    return False
 
 
 def exists(p: str) -> bool:
