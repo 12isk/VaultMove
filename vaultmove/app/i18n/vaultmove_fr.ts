@@ -168,10 +168,6 @@
         <translation>indisponible</translation>
     </message>
     <message>
-        <source>synced by OneDrive or another cloud service: backed up, never freed</source>
-        <translation>synchronisé par OneDrive ou un autre service cloud : sauvegardé, jamais libéré</translation>
-    </message>
-    <message>
         <source>almost full</source>
         <translation>presque plein</translation>
     </message>
@@ -190,6 +186,14 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
     <message>
         <source>On. Originals are removed only after their copy on the backup drive is verified.</source>
         <translation>Activé. Les originaux ne sont retirés qu’après vérification de leur copie sur le disque de sauvegarde.</translation>
+    </message>
+    <message>
+        <source>synced by OneDrive or another cloud service: backed up and freed</source>
+        <translation>synchronisé par OneDrive ou un autre service cloud : sauvegardé et libéré</translation>
+    </message>
+    <message>
+        <source>synced by OneDrive or another cloud service: backed up, never freed</source>
+        <translation>synchronisé par OneDrive ou un autre service cloud : sauvegardé, jamais libéré</translation>
     </message>
     <message>
         <source>Usage of %1</source>
@@ -548,6 +552,22 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
         <translation>Fichiers libérés :</translation>
     </message>
     <message>
+        <source>Back up only, never free space</source>
+        <translation>Sauvegarder seulement, ne jamais libérer d’espace</translation>
+    </message>
+    <message>
+        <source>Back up and free space (also deletes from the cloud)</source>
+        <translation>Sauvegarder et libérer de l’espace (supprime aussi du cloud)</translation>
+    </message>
+    <message>
+        <source>Cloud folders</source>
+        <translation>Dossiers cloud</translation>
+    </message>
+    <message>
+        <source>Cloud folders (OneDrive…):</source>
+        <translation>Dossiers cloud (OneDrive…) :</translation>
+    </message>
+    <message>
         <source>Same as Windows</source>
         <translation>Comme Windows</translation>
     </message>
@@ -586,6 +606,14 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
     <message>
         <source>Connects to GitHub only when you click</source>
         <translation>Se connecte à GitHub uniquement quand vous cliquez</translation>
+    </message>
+    <message>
+        <source>Freeing space in a OneDrive (or other cloud-synced) folder also deletes the file from OneDrive online and from every other device synced to it. The copy on your backup drive becomes the only one.
+
+Free space in cloud folders anyway?</source>
+        <translation>Libérer de l’espace dans un dossier OneDrive (ou synchronisé avec un autre cloud) supprime aussi le fichier de OneDrive en ligne et de tous les autres appareils synchronisés. La copie sur votre disque de sauvegarde devient la seule.
+
+Libérer quand même de l’espace dans les dossiers cloud ?</translation>
     </message>
     <message>
         <source>Delete Old Versions</source>

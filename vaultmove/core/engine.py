@@ -202,14 +202,15 @@ class Engine:
                 if not os.path.isdir(fsutil.lp(s.path)):
                     continue
                 days = self._offload_days_for_preview(s)
-                if days and fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+                if days and not self.cfg.offload_cloud and fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
                     res.messages.append(CLOUD_MSG.format(path=s.path))
                     days = None
                 for e in walk(s.path, Matcher(self.cfg.excludes + s.excludes), [], self.cancel):
                     res.stats.scanned += 1
                     abs_p = fsutil.join(s.path, e.rel)
                     res.plan.items.append(PlanItem("copy", abs_p, e.size))
-                    if days and self._old_enough(e.mtime_ns, days) and not e.cloud:
+                    if (days and self._old_enough(e.mtime_ns, days)
+                            and (self.cfg.offload_cloud or not e.cloud)):
                         res.plan.items.append(PlanItem("eligible", abs_p, e.size, "after this backup is verified"))
                     self.progress(phase="preview", done=res.stats.scanned, current=e.rel)
         except Cancelled:
@@ -548,13 +549,14 @@ class Engine:
     def _offload_phase(self, res: RunResult, idx: Index, vroot: str, sources, started: float, dry_run: bool):
         st = res.stats
         armed = self.cfg.offload_armed()
+        allow_cloud = bool(self.cfg.offload_cloud)
         if dry_run:
             # The preview lists what *would* be deleted (offload need not be armed yet).
             for s in sources:
                 days = self._offload_days_for_preview(s)
                 if not days or not os.path.isdir(fsutil.lp(s.path)):
                     continue
-                if fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+                if not allow_cloud and fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
                     res.messages.append(CLOUD_MSG.format(path=s.path))
                     continue
                 if self.same_disk_fn(vroot, s.path) is not False:
@@ -564,7 +566,7 @@ class Engine:
                 cutoff = int((self.now() - days * 86400) * 1e9)
                 for c in idx.offload_candidates(s.id, cutoff, started):
                     p = fsutil.join(s.path, c.rel_path)
-                    d = offload.check_source_state(p, c, days, self.now())
+                    d = offload.check_source_state(p, c, days, self.now(), allow_cloud)
                     if d.ok:
                         res.plan.items.append(PlanItem("delete", p, c.size, "verified copy on backup drive"))
                 to_copy = [i for i in res.plan.items if i.action == "copy" and fsutil.is_within(i.path, s.path)]
@@ -573,7 +575,8 @@ class Engine:
                         st_ = os.lstat(fsutil.lp(it.path))
                     except OSError:
                         continue
-                    if self._old_enough(st_.st_mtime_ns, days) and not fsutil.is_cloud_placeholder(st_):
+                    if (self._old_enough(st_.st_mtime_ns, days) and not fsutil.is_online_only(st_)
+                            and (allow_cloud or not fsutil.is_cloud_placeholder(st_))):
                         res.plan.items.append(PlanItem("eligible", it.path, it.size,
                                                        "after this backup is verified"))
             return
@@ -584,7 +587,7 @@ class Engine:
             days = self.cfg.source_offload_days(s)
             if not days or not os.path.isdir(fsutil.lp(s.path)):
                 continue
-            if fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
+            if not allow_cloud and fsutil.in_cloud_sync(fsutil.join(s.path, "x")):
                 self.log(CLOUD_MSG.format(path=s.path))
                 continue
             same = self.same_disk_fn(vroot, s.path)
@@ -602,7 +605,7 @@ class Engine:
                     raise VaultNotConnected("backup drive was disconnected")
                 self.progress(phase="offload", current=c.rel_path, done=st.offloaded)
                 d = offload.offload_one(idx, vroot, s, c, days=days, now=self.now(), recycle=recycle,
-                                        log=self.log, cancel=self.cancel)
+                                        log=self.log, cancel=self.cancel, allow_cloud=allow_cloud)
                 if d.ok:
                     st.offloaded += 1
                     st.offloaded_bytes += c.size

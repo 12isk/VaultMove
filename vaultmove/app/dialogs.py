@@ -296,6 +296,13 @@ class SettingsDialog(QDialog):
             self.recycle.addItem(tr(t), val)
         self.recycle.setCurrentIndex(max(0, self.recycle.findData(c.offload.recycle)))
         form.addRow(tr("Freed files:"), self.recycle)
+        self.cloud = QComboBox()
+        self.cloud.addItem(tr("Back up only, never free space"), False)
+        self.cloud.addItem(tr("Back up and free space (also deletes from the cloud)"), True)
+        self.cloud.setCurrentIndex(1 if c.offload_cloud else 0)
+        self.cloud.setAccessibleName(tr("Cloud folders"))
+        self.cloud.currentIndexChanged.connect(self._cloud_changed)
+        form.addRow(tr("Cloud folders (OneDrive…):"), self.cloud)
         self.lang = QComboBox()
         self.lang.addItem(tr("Same as Windows"), "auto")
         for k, n in LANGUAGES.items():
@@ -350,6 +357,7 @@ class SettingsDialog(QDialog):
         c.vss_enabled = self.vss.isChecked()
         c.keep_versions_days = self.keep.currentData()
         c.offload.recycle = self.recycle.currentData()
+        c.offload_cloud = bool(self.cloud.currentData())
         lang_changed = c.language != self.lang.currentData()
         c.language = self.lang.currentData()
         c.vault.allow_same_drive = self.same.isChecked()
@@ -361,6 +369,18 @@ class SettingsDialog(QDialog):
         if lang_changed:
             QMessageBox.information(self, "VaultMove", tr("The new language is used after VaultMove restarts."))
         self.accept()
+
+    def _cloud_changed(self, i):
+        if not self.cloud.itemData(i):
+            return
+        r = QMessageBox.warning(self, "VaultMove", tr(
+            "Freeing space in a OneDrive (or other cloud-synced) folder also deletes the file from OneDrive online "
+            "and from every other device synced to it. The copy on your backup drive becomes the only one.\n\n"
+            "Free space in cloud folders anyway?"), QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if r != QMessageBox.Yes:
+            self.cloud.blockSignals(True)
+            self.cloud.setCurrentIndex(0)
+            self.cloud.blockSignals(False)
 
     def _updates(self):
         from .updates import UpdateDialog

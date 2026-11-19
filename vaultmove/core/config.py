@@ -68,6 +68,7 @@ class Config:
     sources: list = field(default_factory=list)
     excludes: list = field(default_factory=lambda: list(DEFAULT_EXCLUDES))
     offload: OffloadCfg = field(default_factory=OffloadCfg)
+    offload_cloud: bool = False   # opt-in: also free space in OneDrive/cloud-synced folders
     keep_versions_days: Optional[int] = None    # None = forever (thinning still applies)
     thinning: bool = True
     schedule_minutes: int = 60

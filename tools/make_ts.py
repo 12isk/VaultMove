@@ -392,6 +392,19 @@ FR = {
     "The preview could not be completed: %1": "L’aperçu n’a pas pu aboutir : %1",
     "Space freed: %1 now, %2 after the copies are verified on a later run.":
         "Espace libéré : %1 maintenant, %2 après vérification des copies lors d’un prochain passage.",
+    "Back up only, never free space": "Sauvegarder seulement, ne jamais libérer d’espace",
+    "Back up and free space (also deletes from the cloud)":
+        "Sauvegarder et libérer de l’espace (supprime aussi du cloud)",
+    "Cloud folders": "Dossiers cloud",
+    "Cloud folders (OneDrive…):": "Dossiers cloud (OneDrive…) :",
+    "Freeing space in a OneDrive (or other cloud-synced) folder also deletes the file from OneDrive online "
+    "and from every other device synced to it. The copy on your backup drive becomes the only one.\n\n"
+    "Free space in cloud folders anyway?":
+        "Libérer de l’espace dans un dossier OneDrive (ou synchronisé avec un autre cloud) supprime aussi le "
+        "fichier de OneDrive en ligne et de tous les autres appareils synchronisés. La copie sur votre disque de "
+        "sauvegarde devient la seule.\n\nLibérer quand même de l’espace dans les dossiers cloud ?",
+    "synced by OneDrive or another cloud service: backed up and freed":
+        "synchronisé par OneDrive ou un autre service cloud : sauvegardé et libéré",
 }
 
 

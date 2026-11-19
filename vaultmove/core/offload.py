@@ -6,7 +6,8 @@ An original is deleted only if ALL of these hold at the moment of deletion:
   (c) the source, re-hashed now through a handle that denies writers, equals it too;
   (d) the source size and mtime equal the recorded ones before, during and after hashing;
   (e) the source mtime is older than offload_after_days (and not in the future).
-Plus: not a link or cloud placeholder, not protected, not excluded, vault not on the
+Plus: not a link, not a cloud-synced file (unless the user opted in with
+Config.offload_cloud; online-only files are refused even then), not protected, not excluded, vault not on the
 same physical disk, offload armed (enabled + confirmed + previewed).
 """
 
@@ -26,7 +27,16 @@ class OffloadDecision:
     reason: str = ""
 
 
-def check_source_state(abs_src: str, c, days: int, now: float) -> OffloadDecision:
+def _online_only(abs_src: str, st) -> bool:
+    """Content not on this PC. Checked on both lstat and the directory entry
+    (FindFirstFileW), since lstat can hide cloud attributes."""
+    if fsutil.is_online_only(st):
+        return True
+    fd = winapi.find_data(abs_src)
+    return bool(fd and fd[0] & (fsutil.FILE_ATTRIBUTE_OFFLINE | fsutil.FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS))
+
+
+def check_source_state(abs_src: str, c, days: int, now: float, allow_cloud: bool = False) -> OffloadDecision:
     try:
         st = os.lstat(fsutil.lp(abs_src))
     except FileNotFoundError:
@@ -35,7 +45,9 @@ def check_source_state(abs_src: str, c, days: int, now: float) -> OffloadDecisio
         return OffloadDecision(False, f"cannot read original: {e}")
     if fsutil.is_link_like(st):
         return OffloadDecision(False, "is a link")
-    if fsutil.is_cloud_placeholder(st) or fsutil.in_cloud_sync(abs_src):
+    if _online_only(abs_src, st):
+        return OffloadDecision(False, "online-only cloud file (not on this PC)")
+    if not allow_cloud and (fsutil.is_cloud_placeholder(st) or fsutil.in_cloud_sync(abs_src)):
         return OffloadDecision(False, "cloud-synced file (deleting would delete it in the cloud)")
     if fsutil.attrs_of(st) & (fsutil.FILE_ATTRIBUTE_READONLY | fsutil.FILE_ATTRIBUTE_SYSTEM):
         return OffloadDecision(False, "read-only or system file")
@@ -63,10 +75,10 @@ def verify_vault_copy(vroot: str, c) -> OffloadDecision:
 
 
 def offload_one(idx, vroot: str, src_cfg, c, *, days: int, now: float, recycle: bool,
-                log, cancel=None) -> OffloadDecision:
+                log, cancel=None, allow_cloud: bool = False) -> OffloadDecision:
     abs_src = fsutil.join(src_cfg.path, c.rel_path)
 
-    d = check_source_state(abs_src, c, days, now)
+    d = check_source_state(abs_src, c, days, now, allow_cloud)
     if not d.ok:
         return d
     if fsutil.is_protected(abs_src):

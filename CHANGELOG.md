@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1
+
+* **Free space in OneDrive folders (opt-in).** New setting *Cloud folders (OneDrive…)* in Settings:
+  * *Back up only, never free space* (default, same as before);
+  * *Back up and free space (also deletes from the cloud)*, which asks for confirmation first: a freed file is
+    also deleted from OneDrive online and from your other devices, so the backup drive holds the only copy.
+  Online-only files (not on this PC) are never freed, and every other safety check still applies.
+  The folder list shows which setting is in effect for each cloud folder.
+
 ## 1.1.0
 
 * **Check for Updates** (Settings): downloads the new version from this project's GitHub Releases, verifies its

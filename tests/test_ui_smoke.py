@@ -377,3 +377,27 @@ def test_icon_renders_all_states(qapp):
         img = icon.render(128, st, 0.4 if st == "running" else None)
         assert not img.isNull()
         img.save(os.path.join(SHOTS, f"icon_{st}.png"))
+
+
+@pytest.mark.parametrize("answer", ["no", "yes"])
+def test_settings_cloud_offload_needs_warning(qtbot, ctrl, monkeypatch, answer):
+    from PySide6.QtWidgets import QMessageBox
+    from vaultmove.app import dialogs
+    from vaultmove.core import config as cfgmod
+    asked = []
+
+    def fake_warning(*a, **k):
+        asked.append(a[2])
+        return QMessageBox.Yes if answer == "yes" else QMessageBox.No
+    monkeypatch.setattr(dialogs.QMessageBox, "warning", fake_warning)
+    ctrl.show_window()
+    s = dialogs.SettingsDialog(ctrl, ctrl.window)
+    assert s.cloud.currentIndex() == 0
+    s.cloud.setCurrentIndex(1)
+    assert len(asked) == 1 and "OneDrive" in asked[0]
+    assert s.cloud.currentIndex() == (1 if answer == "yes" else 0)
+    if answer == "yes":
+        shot(s, "07b_settings_cloud_on")
+    s._save()
+    assert ctrl.cfg.offload_cloud is (answer == "yes")
+    assert cfgmod.load(ctrl.cfg_dir).offload_cloud is (answer == "yes")

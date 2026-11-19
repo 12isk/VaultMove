@@ -242,3 +242,89 @@ def test_offloaded_copy_matches_original_hash(env):
     assert c.offloaded_at and c.sha256 == h
     assert sha_file(os.path.join(env.vault, c.vault_rel)) == h
     idx.close()
+
+
+# ---------------------------------------------------------------- opt-in: free space in cloud folders
+
+
+def test_offload_cloud_is_off_by_default_and_old_settings_load():
+    from vaultmove.core.config import Config, config_from_dict
+    assert Config().offload_cloud is False
+    assert config_from_dict({"schedule_minutes": 60}).offload_cloud is False   # 1.1.0 file without the key
+
+
+def test_cloud_folder_is_freed_when_opted_in(env, monkeypatch):
+    p = env.write("Desktop shortcut.lnk", b"lnk" * 100, age_days=100)
+    h = sha_file(p)
+    monkeypatch.setenv("OneDrive", env.src)
+    env.cfg.offload_cloud = True
+    env.arm_offload(days=30)
+    r1 = env.run()
+    assert r1.stats.copied == 1 and r1.stats.offloaded == 0   # never in the run that made the copy
+    assert os.path.exists(p)
+    r2 = env.run()
+    assert r2.stats.offloaded == 1
+    assert not os.path.exists(p)
+    idx = env.index()
+    c = idx.current_copy(env.sid, "Desktop shortcut.lnk")
+    assert c.offloaded_at and c.sha256 == h
+    assert sha_file(os.path.join(env.vault, c.vault_rel)) == h
+    idx.close()
+
+
+def test_cloud_folder_not_freed_with_default_setting(env, monkeypatch):
+    p = env.write("photo.jpg", b"jpg", age_days=100)
+    monkeypatch.setenv("OneDrive", env.src)
+    assert env.cfg.offload_cloud is False
+    env.arm_offload(days=30)
+    _two_runs(env)
+    env.run()
+    assert os.path.exists(p)
+
+
+def test_online_only_file_is_never_freed_even_when_opted_in(env, monkeypatch):
+    from vaultmove.core import offload
+    p = env.write("big.mov", b"m" * 5000, age_days=100)
+    monkeypatch.setenv("OneDrive", env.src)
+    env.cfg.offload_cloud = True
+    env.arm_offload(days=30)
+    assert env.run().stats.copied == 1
+    # The file becomes online-only (OneDrive "Free up space") after it was backed up.
+    monkeypatch.setattr(fsutil, "is_online_only", lambda st: True)
+    prev = env.run(dry_run=True)
+    assert prev.plan.total("delete") == (0, 0)
+    r = env.run()
+    assert r.stats.offloaded == 0
+    assert os.path.exists(p)
+    idx = env.index()
+    c = idx.current_copy(env.sid, "big.mov")
+    assert c.offloaded_at is None
+    idx.close()
+    # And the check itself refuses it, independent of the scanner.
+    d = offload.check_source_state(p, c, 30, time.time(), allow_cloud=True)
+    assert not d.ok and "online-only" in d.reason
+
+
+def test_preview_lists_cloud_file_for_delete_only_when_opted_in(env, monkeypatch):
+    p = env.write("notes.txt", b"notes", age_days=100)
+    monkeypatch.setenv("OneDrive", env.src)
+    env.arm_offload(days=30)
+    env.run()
+    off = env.run(dry_run=True)
+    assert off.plan.total("delete") == (0, 0)
+    assert any("cloud" in m for m in off.messages)
+    env.cfg.offload_cloud = True
+    on = env.run(dry_run=True)
+    assert [i.path for i in on.plan.items if i.action == "delete"] == [p]
+    assert not any("cloud" in m for m in on.messages)
+
+
+def test_new_vault_preview_marks_cloud_files_eligible_only_when_opted_in(env, monkeypatch):
+    p = env.write("old.txt", b"old", age_days=100)
+    monkeypatch.setenv("OneDrive", env.src)
+    env.arm_offload(days=30)
+    off = env.engine().preview_new_vault()
+    assert not [i for i in off.plan.items if i.action == "eligible"]
+    env.cfg.offload_cloud = True
+    on = env.engine().preview_new_vault()
+    assert [i.path for i in on.plan.items if i.action == "eligible"] == [p]
