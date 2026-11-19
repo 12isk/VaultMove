@@ -2,7 +2,7 @@
 
 Values follow the macOS design skill (~/.claude/skills/macos-design): hierarchy
 through background levels (not borders), hairline low-opacity edges, the Apple
-type scale (13 px body), 8 px grid, radii 8 (cards) / 6 (controls) / 12 (panels),
+type scale (13 px body), 8 px grid, radii 14 (cards) / 9 (controls) / 18 (panels),
 28 px controls, 34 px large buttons. Light and dark are designed separately:
 dark spreads its background levels further apart instead of inverting light.
 Widgets never hard-code colours: they use objectNames styled here, or tokens().
@@ -55,10 +55,10 @@ QWidget { color: $text; font-family: "$font"; font-size: 13px; }
 QMainWindow, QDialog, QWidget#Page, QScrollArea, QScrollArea > QWidget > QWidget#Page { background: $bg; }
 QWidget#Transparent { background: transparent; }
 QWidget#TopBar { background: $bar; border-bottom: 1px solid $edge; }
-QFrame#Card { background: $card; border: 1px solid $edge; border-radius: 8px; }
-QFrame#Panel { background: $card; border: 1px solid $edge_strong; border-radius: 12px; }
-QFrame#ActionBar { background: $card; border: 1px solid $edge_strong; border-radius: 10px; }
-QFrame#DropTarget { background: $accent_soft; border: 2px dashed $accent; border-radius: 8px; }
+QFrame#Card { background: $card; border: 1px solid $edge; border-radius: 14px; }
+QFrame#Panel { background: $card; border: 1px solid $edge_strong; border-radius: 18px; }
+QFrame#ActionBar { background: $card; border: 1px solid $edge_strong; border-radius: 14px; }
+QFrame#DropTarget { background: $accent_soft; border: 2px dashed $accent; border-radius: 14px; }
 QLabel { background: transparent; }
 QLabel#Title { font-size: 26px; font-weight: 700; }
 QLabel#Title1 { font-size: 22px; font-weight: 400; }
@@ -70,41 +70,41 @@ QLabel#Danger { color: $danger; font-size: 12px; }
 QLabel#Warning { color: $warning; font-size: 12px; }
 QLabel#Stat { font-size: 17px; font-weight: 600; }
 QLabel#EmptyTitle { font-size: 17px; font-weight: 600; }
-QLabel#Kbd { color: $subtext; background: $kbd_bg; border: 1px solid $edge; border-radius: 4px;
+QLabel#Kbd { color: $subtext; background: $kbd_bg; border: 1px solid $edge; border-radius: 6px;
              padding: 1px 6px; font-size: 11px; }
-QLabel#Toast { color: $toast_fg; background: $toast_bg; border-radius: 10px; padding: 10px 16px;
+QLabel#Toast { color: $toast_fg; background: $toast_bg; border-radius: 14px; padding: 10px 16px;
                font-size: 13px; font-weight: 500; }
 
-QPushButton { background: $button; border: 1px solid $edge_strong; border-radius: 6px; padding: 4px 12px;
+QPushButton { background: $button; border: 1px solid $edge_strong; border-radius: 9px; padding: 4px 12px;
               min-height: 18px; }
 QPushButton:hover { background: $hover; }
 QPushButton:pressed { background: $pressed; }
 QPushButton:focus { border: 1px solid $accent; }
 QPushButton:disabled { color: $disabled; border-color: $edge; }
 QPushButton#Primary { background: $accent; color: #ffffff; border: 1px solid $accent; font-weight: 600;
-                      padding: 7px 18px; border-radius: 6px; }
+                      padding: 7px 18px; border-radius: 9px; }
 QPushButton#Primary:hover { background: $accent_hover; border-color: $accent_hover; }
 QPushButton#Primary:pressed { background: $accent_pressed; }
 QPushButton#Primary:focus { border: 2px solid $text; }
 QPushButton#Primary:disabled { background: $accent_disabled; border-color: $accent_disabled; color: #ffffff; }
 QPushButton#Link { background: transparent; border: none; color: $accent; padding: 2px 4px; }
 QPushButton#Link:hover { text-decoration: underline; }
-QWidget#SegmentBar { background: $segment_bg; border-radius: 7px; }
-QPushButton#Segment { background: transparent; border: 1px solid transparent; border-radius: 6px;
+QWidget#SegmentBar { background: $segment_bg; border-radius: 10px; }
+QPushButton#Segment { background: transparent; border: 1px solid transparent; border-radius: 8px;
                       padding: 3px 16px; color: $subtext; min-height: 18px; }
 QPushButton#Segment:hover { color: $text; }
 QPushButton#Segment:checked { background: $card; color: $text; font-weight: 600; border: 1px solid $edge; }
 QPushButton#Segment:focus { border: 1px dashed $accent; }
-QToolButton { background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px; }
+QToolButton { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px; }
 QToolButton:hover { background: $hover; }
 QToolButton:pressed { background: $pressed; }
 QToolButton:focus { border: 1px solid $accent; }
 QToolButton:disabled { color: $disabled; }
 
 QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QDateTimeEdit {
-    background: $field; border: 1px solid $edge_strong; border-radius: 6px; padding: 4px 8px;
+    background: $field; border: 1px solid $edge_strong; border-radius: 9px; padding: 4px 8px;
     selection-background-color: $accent; selection-color: #ffffff; min-height: 18px; }
-QLineEdit#Search { background: $segment_bg; border: 1px solid transparent; border-radius: 7px; padding: 4px 8px; }
+QLineEdit#Search { background: $segment_bg; border: 1px solid transparent; border-radius: 10px; padding: 4px 8px; }
 QLineEdit#Search:focus { background: $field; border: 1px solid $accent; }
 QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QPlainTextEdit:focus { border: 1px solid $accent; }
 QComboBox QAbstractItemView { background: $card; border: 1px solid $edge_strong; selection-background-color: $accent;
@@ -133,15 +133,15 @@ QScrollBar::handle:horizontal { background: $scroll; border-radius: 3px; min-wid
 QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page { width: 0; height: 0;
     background: transparent; }
 
-QMenu { background: $card; border: 1px solid $edge_strong; border-radius: 8px; padding: 4px; }
-QMenu::item { padding: 5px 20px; border-radius: 4px; }
+QMenu { background: $card; border: 1px solid $edge_strong; border-radius: 12px; padding: 4px; }
+QMenu::item { padding: 5px 20px; border-radius: 7px; }
 QMenu::item:selected { background: $accent; color: #ffffff; }
 QMenu::item:disabled { color: $disabled; }
 QMenu::separator { height: 1px; background: $edge; margin: 4px 8px; }
-QToolTip { background: $card; color: $text; border: 1px solid $edge_strong; padding: 3px 6px; border-radius: 4px; }
+QToolTip { background: $card; color: $text; border: 1px solid $edge_strong; padding: 3px 6px; border-radius: 7px; }
 QCheckBox { spacing: 8px; background: transparent; }
 QCheckBox::indicator, QListView::indicator, QTreeView::indicator {
-    width: 16px; height: 16px; border: 1px solid $edge_strong; border-radius: 4px; background: $field; }
+    width: 16px; height: 16px; border: 1px solid $edge_strong; border-radius: 5px; background: $field; }
 QCheckBox::indicator:hover, QListView::indicator:hover { border-color: $accent; }
 QCheckBox::indicator:focus { border: 1px solid $accent; }
 QCheckBox::indicator:checked, QListView::indicator:checked, QTreeView::indicator:checked {
@@ -156,7 +156,7 @@ QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right;
                       background: transparent; margin-top: 2px; }
 QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 20px; border: none;
                         background: transparent; margin-bottom: 2px; }
-QSpinBox::up-button:hover, QSpinBox::down-button:hover { background: $hover; border-radius: 4px; }
+QSpinBox::up-button:hover, QSpinBox::down-button:hover { background: $hover; border-radius: 6px; }
 QSpinBox::up-arrow { image: url($img_up); width: 10px; height: 10px; }
 QSpinBox::down-arrow { image: url($img_down); width: 10px; height: 10px; }
 """)

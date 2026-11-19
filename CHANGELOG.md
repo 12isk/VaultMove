@@ -9,6 +9,7 @@
   1080p screen at 150 %) and are kept inside it. The smallest main window is now 720 × 480.
 * **Resizing:** on wide windows the Back Up page stays centred instead of stretching edge to edge; the folder list
   is as tall as its folders; the "days" box no longer cuts off its text; Settings scrolls when the screen is short.
+* **Rounder corners:** cards 14 px, panels 18 px, buttons and fields 9 px.
 
 ## 1.1.1
 

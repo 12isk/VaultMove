@@ -171,7 +171,7 @@ class Timeline(QWidget):
         if self.hasFocus():
             p.setPen(QPen(acc, 1, Qt.DotLine))
             p.setBrush(Qt.NoBrush)
-            p.drawRoundedRect(QRectF(1, 1, self.width() - 2, self.height() - 2), 8, 8)
+            p.drawRoundedRect(QRectF(1, 1, self.width() - 2, self.height() - 2), 12, 12)
 
     # ------------------------------------------------------------------ input
 

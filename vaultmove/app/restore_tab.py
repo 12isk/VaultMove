@@ -158,7 +158,7 @@ class BadgeDelegate(QStyledItemDelegate):
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
         p.setBrush(theme.color(bg))
-        p.drawRoundedRect(r, 4, 4)   # tag / badge radius
+        p.drawRoundedRect(r, 6, 6)   # tag / badge radius
         p.setPen(theme.color(fg))
         p.drawText(r, Qt.AlignCenter, text)
         p.restore()
