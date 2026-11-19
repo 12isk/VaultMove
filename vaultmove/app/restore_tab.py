@@ -1,21 +1,28 @@
-"""The "Browse & Restore" page: a folder as it was on a chosen date, search, restore."""
+"""The "Browse & Restore" page: a folder as it was on a chosen date, search, restore.
+
+macOS-skill patterns: search lives in the top bar (always visible), empty states
+explain what's missing with one call to action, the action bar appears only when
+something is selected, every action has a shortcut, and files can be dragged out
+to Explorer (as copies only, so a drag can never move a file out of the backup).
+"""
 
 from __future__ import annotations
 
 import os
 import time
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QRectF, Qt, QTimer
-from PySide6.QtGui import QColor, QKeySequence, QPainter, QShortcut
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit,
-                               QMessageBox, QPushButton, QStyle, QStyledItemDelegate, QToolButton, QTreeView,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import QAbstractTableModel, QMimeData, QModelIndex, QRectF, Qt, QTimer, QUrl
+from PySide6.QtGui import QKeySequence, QPainter, QShortcut
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QMessageBox,
+                               QPushButton, QStyle, QStyledItemDelegate, QTreeView, QVBoxLayout, QWidget)
 
-from ..core import catalog
+from ..core import catalog, fsutil
 from . import theme
 from .i18n import N_, tr
+from .symbols import symbol
 from .timeline import NOW, Timeline
-from .widgets import Card, fmt_datetime, hbox, human_size, label, primary_button
+from .widgets import (ActionBar, Card, EmptyState, fmt_datetime, hbox, human_size, icon_button, kbd, label,
+                      primary_button)
 from .workers import run_async
 
 BATCH = 400
@@ -26,17 +33,18 @@ STATUS_TEXT = {catalog.STATUS_LOCAL: N_("On this PC"), catalog.STATUS_VAULT_ONLY
 class FileModel(QAbstractTableModel):
     """Flat list with lazy fetching, so folders with 100k entries stay fast."""
 
-    COLS = ("Name", "Status", "Size", "Modified")
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self._all: list[dict] = []
         self._shown = 0
-        st = QStyle.SP_DirIcon
-        self._dir_icon = parent.style().standardIcon(st) if parent else None
-        self._file_icon = parent.style().standardIcon(QStyle.SP_FileIcon) if parent else None
+        self.vault_root: str | None = None   # set while the backup drive is connected (enables drag out)
+        self.refresh_icons()
         self._status_names = {k: tr(v) for k, v in STATUS_TEXT.items()}
         self._cols = [tr("Name"), tr("Status"), tr("Size"), tr("Modified")]
+
+    def refresh_icons(self):
+        self._dir_icon = symbol("folder", 16, "accent")
+        self._file_icon = symbol("doc", 16, "subtext")
 
     def set_rows(self, rows: list[dict]):
         self.beginResetModel()
@@ -94,6 +102,34 @@ class FileModel(QAbstractTableModel):
             return f"{r['name']}, {st}" if st else r["name"]
         return None
 
+    # ------------------------------------------------------------------ drag out (copy only)
+
+    def flags(self, idx):
+        f = super().flags(idx)
+        if idx.isValid() and self.vault_root and self._all[idx.row()]["kind"] == "file":
+            f |= Qt.ItemIsDragEnabled
+        return f
+
+    def supportedDragActions(self):  # noqa: N802
+        return Qt.CopyAction  # never Move: Explorer would otherwise take the file out of the vault
+
+    def mimeTypes(self):  # noqa: N802
+        return ["text/uri-list"]
+
+    def mimeData(self, indexes):  # noqa: N802
+        urls, seen = [], set()
+        for i in indexes:
+            r = self._all[i.row()]
+            if r["kind"] != "file" or i.row() in seen or not self.vault_root:
+                continue
+            seen.add(i.row())
+            p = fsutil.join(self.vault_root, r["copy"].vault_rel)
+            if os.path.isfile(p):
+                urls.append(QUrl.fromLocalFile(p))
+        md = QMimeData()
+        md.setUrls(urls)
+        return md
+
 
 class BadgeDelegate(QStyledItemDelegate):
     def paint(self, p: QPainter, opt, idx):
@@ -107,20 +143,23 @@ class BadgeDelegate(QStyledItemDelegate):
         style = opt.widget.style() if opt.widget else None
         if style:
             style.drawControl(QStyle.CE_ItemViewItem, opt, p, opt.widget)
-        t = theme.tokens()
         bg, fg = {catalog.STATUS_LOCAL: ("badge_local_bg", "badge_local_fg"),
                   catalog.STATUS_VAULT_ONLY: ("badge_vault_bg", "badge_vault_fg")}.get(
             status, ("badge_old_bg", "badge_old_fg"))
-        fm = opt.fontMetrics
-        w = fm.horizontalAdvance(text) + 18
-        h = fm.height() + 6
-        r = QRectF(opt.rect.x() + 4, opt.rect.y() + (opt.rect.height() - h) / 2, w, h)
+        f = opt.font
+        f.setPixelSize(11)
+        f.setWeight(f.Weight.DemiBold)
         p.save()
+        p.setFont(f)
+        fm = p.fontMetrics()
+        w = fm.horizontalAdvance(text) + 14
+        h = fm.height() + 4
+        r = QRectF(opt.rect.x() + 4, opt.rect.y() + (opt.rect.height() - h) / 2, w, h)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(t[bg]))
-        p.drawRoundedRect(r, h / 2, h / 2)
-        p.setPen(QColor(t[fg]))
+        p.setBrush(theme.color(bg))
+        p.drawRoundedRect(r, 4, 4)   # tag / badge radius
+        p.setPen(theme.color(fg))
         p.drawText(r, Qt.AlignCenter, text)
         p.restore()
 
@@ -135,33 +174,27 @@ class RestoreTab(QWidget):
         self.folder_names: list[str] = []   # original-case names for the breadcrumb
         self.t = NOW
         self._gen = 0
+        self._query = ""
         self._search_mode = False
+        self._live = False
 
         v = QVBoxLayout(self)
-        v.setContentsMargins(2, 6, 2, 6)
+        v.setContentsMargins(0, 2, 0, 0)
         v.setSpacing(12)
 
         self.source = QComboBox()
         self.source.setAccessibleName(tr("Backed-up folder"))
-        self.source.setMinimumWidth(240)
-        self.btn_up = QToolButton()
-        self.btn_up.setText("↑")
-        self.btn_up.setToolTip(tr("Up one folder (Backspace)"))
-        self.btn_up.setAccessibleName(tr("Up one folder"))
+        self.source.setMinimumWidth(220)
+        self.btn_up = icon_button("back", tr("Up one folder (Backspace)"))
         self.crumb = label("", "H2")
-        self.search = QLineEdit()
-        self.search.setPlaceholderText(tr("Search all versions…"))
-        self.search.setAccessibleName(tr("Search all versions"))
-        self.search.setClearButtonEnabled(True)
-        self.search.setMinimumWidth(240)
-        v.addLayout(hbox(self.source, self.btn_up, 6, self.crumb, None, self.search))
+        v.addLayout(hbox(self.btn_up, self.crumb, None, self.source))
 
         self.banner = label("", "Warning", wrap=True)
         self.banner.hide()
         v.addWidget(self.banner)
 
         body = QHBoxLayout()
-        body.setSpacing(14)
+        body.setSpacing(16)
         self.model = FileModel(self)
         self.view = QTreeView()
         self.view.setModel(self.model)
@@ -171,36 +204,53 @@ class RestoreTab(QWidget):
         self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.view.setAccessibleName(tr("Files"))
         self.view.setItemDelegateForColumn(1, BadgeDelegate(self.view))
+        self.view.setDragEnabled(True)
+        self.view.setDragDropMode(QAbstractItemView.DragOnly)
+        self.view.setDefaultDropAction(Qt.CopyAction)
         h = self.view.header()
         h.setStretchLastSection(False)
         h.setSectionResizeMode(0, QHeaderView.Stretch)
         for c, w in ((1, 150), (2, 90), (3, 140)):
             h.setSectionResizeMode(c, QHeaderView.Interactive)
             h.resizeSection(c, w)
-        card = Card(shadow=False, margins=(10, 8, 10, 8))
+        card = Card(shadow=False, margins=(8, 6, 8, 6))
         card.add(self.view)
-        self.empty = label("", "Subtle")
-        self.empty.setAlignment(Qt.AlignCenter)
+        self.empty = EmptyState("clock", "", "", tr("Back Up Now"))
+        self.empty.button.clicked.connect(ctrl.backup_now)
+        self.empty.hide()
         card.add(self.empty)
         body.addWidget(card, 1)
         self.timeline = Timeline()
         body.addWidget(self.timeline)
         v.addLayout(body, 1)
 
+        # Floating action bar: appears only when something is selected.
         self.info = label("", "Subtle")
         self.btn_history = QPushButton(tr("Where Is It?"))
-        self.btn_history.setToolTip(tr("Show the history of the selected file"))
+        self.btn_history.setIcon(symbol("clock", 14))
+        self.btn_history.setToolTip(tr("Show the history of the selected file (Ctrl+I)"))
         self.btn_restore_to = QPushButton(tr("Restore To…"))
+        self.btn_restore_to.setToolTip(tr("Restore into a folder you choose (Ctrl+Shift+R)"))
         self.btn_restore = primary_button(tr("Restore"))
         self.btn_restore.setToolTip(tr("Put the selected items back where they were (existing files are never "
-                                       "overwritten)"))
-        v.addLayout(hbox(self.info, None, self.btn_history, self.btn_restore_to, self.btn_restore))
+                                       "overwritten) (Ctrl+R)"))
+        self.bar = ActionBar()
+        self.bar.add(self.info)
+        self.bar.add(kbd("Ctrl+I"))
+        self.bar.add(self.btn_history)
+        self.bar.add(self.btn_restore_to)
+        self.bar.add(kbd("Ctrl+R"))
+        self.bar.add(self.btn_restore)
+        self.hint = label(tr("Select files or folders to restore them. Drag files out to copy them anywhere."),
+                          "Caption")
+        self.hint.setAlignment(Qt.AlignCenter)
+        v.addWidget(self.hint)
+        v.addLayout(hbox(None, self.bar, None))
 
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
         self._search_timer.setInterval(300)
         self._search_timer.timeout.connect(self._run_search)
-        self.search.textChanged.connect(lambda _t: self._search_timer.start())
         self.source.currentIndexChanged.connect(self._source_changed)
         self.btn_up.clicked.connect(self.go_up)
         self.view.doubleClicked.connect(self._open)
@@ -212,7 +262,10 @@ class RestoreTab(QWidget):
         self.btn_history.clicked.connect(self._history)
         QShortcut(QKeySequence(Qt.Key_Backspace), self.view, activated=self.go_up)
         QShortcut(QKeySequence("Alt+Up"), self, activated=self.go_up)
-        QShortcut(QKeySequence.Find, self, activated=self.search.setFocus)
+        QShortcut(QKeySequence("Ctrl+R"), self, activated=lambda: self.btn_restore.isEnabled() and self.restore(None))
+        QShortcut(QKeySequence("Ctrl+Shift+R"), self,
+                  activated=lambda: self.btn_restore_to.isEnabled() and self._restore_to())
+        QShortcut(QKeySequence("Ctrl+I"), self, activated=self._history)
         self._update_buttons()
 
     # ------------------------------------------------------------------ loading
@@ -222,7 +275,7 @@ class RestoreTab(QWidget):
         cur = self.source_id
         self.source.clear()
         for s in self.ctrl.cfg.sources:
-            self.source.addItem(os.path.basename(s.path) or s.path, s.id)
+            self.source.addItem(symbol("folder", 16, "accent"), os.path.basename(s.path) or s.path, s.id)
         if cur:
             i = self.source.findData(cur)
             if i >= 0:
@@ -231,6 +284,10 @@ class RestoreTab(QWidget):
         self.source_id = self.source.currentData()
         self._load_timeline()
         self.reload()
+
+    def set_query(self, text: str):
+        self._query = text
+        self._search_timer.start()
 
     def _query_time(self) -> float:
         return time.time() + 1 if self.t == NOW else self.t + 0.001
@@ -254,16 +311,15 @@ class RestoreTab(QWidget):
         run_async(work, done, lambda m: self._set_banner(None, False))
 
     def _set_banner(self, root, have_index):
-        if not have_index:
-            self.banner.setText(tr("No backup index found yet. Connect your backup drive and run a backup."))
-            self.banner.show()
-        elif not root:
+        self._have_index = have_index
+        if have_index and not root:
             self.banner.setText(tr("The backup drive is not connected: you are browsing the saved index. "
                                    "Connect the drive to restore."))
             self.banner.show()
         else:
             self.banner.hide()
         self._live = bool(root)
+        self.model.vault_root = root if root else None
         self._update_buttons()
 
     def reload(self):
@@ -275,13 +331,14 @@ class RestoreTab(QWidget):
         self._set_crumb()
         if not sid:
             self.model.set_rows([])
-            self._show_empty(tr("Add a folder on the Back Up page first."))
+            self._show_empty("folder", tr("Nothing to browse yet"), tr("Add a folder on the Back Up page first."),
+                             False)
             return
 
         def work():
             idx, _root = self.ctrl.service.open_catalog()
             if idx is None:
-                return gen, []
+                return gen, None
             try:
                 lst = catalog.list_folder(idx, sid, key, t)
             finally:
@@ -291,19 +348,40 @@ class RestoreTab(QWidget):
                       "status": st} for c, st in lst.files]
             return gen, rows
 
-        run_async(work, self._loaded, lambda m: self._show_empty(m.splitlines()[0]))
+        run_async(work, self._loaded, lambda m: self._show_empty("clock", tr("Could not read the index"),
+                                                                 m.splitlines()[0], False))
 
     def _loaded(self, r):
         gen, rows = r
         if gen != self._gen:
             return  # stale result (user moved on)
+        if rows is None:
+            self.model.set_rows([])
+            self._show_empty("clock", tr("No backups yet"),
+                             tr("Connect your backup drive and run a backup. Your files will appear here."), True)
+            return
         self.model.set_rows(rows)
-        self._show_empty("" if rows else tr("Nothing was backed up in this folder at that time."))
+        if rows:
+            self._show_empty(None)
+        elif self._search_mode:
+            self._show_empty("search", tr("No matches"),
+                             tr("Nothing in any version matches “%1”.").replace("%1", self._query.strip()), False)
+        else:
+            self._show_empty("clock", tr("Nothing here at that time"),
+                             tr("Nothing was backed up in this folder at that time. Try a later date on the "
+                                "timeline."), False)
         self._update_buttons()
 
-    def _show_empty(self, text):
-        self.empty.setText(text)
-        self.empty.setVisible(bool(text))
+    def _show_empty(self, sym, title="", text="", action=False):
+        if sym is None:
+            self.empty.hide()
+            self.view.show()
+            return
+        self.empty._symbol = sym
+        self.empty.refresh_theme()
+        self.empty.set_texts(title, text, action)
+        self.view.hide()
+        self.empty.show()
 
     def _set_crumb(self):
         name = self.source.currentText()
@@ -316,7 +394,7 @@ class RestoreTab(QWidget):
         self.btn_up.setEnabled(bool(self.folder_key) and not self._search_mode)
 
     def _run_search(self):
-        term = self.search.text().strip()
+        term = self._query.strip()
         self._search_mode = bool(term)
         self.timeline.setEnabled(not self._search_mode)
         if not term:
@@ -329,7 +407,7 @@ class RestoreTab(QWidget):
         def work():
             idx, _root = self.ctrl.service.open_catalog()
             if idx is None:
-                return gen, []
+                return gen, None
             try:
                 rows = []
                 for c in idx.search(term, 1000):
@@ -341,7 +419,8 @@ class RestoreTab(QWidget):
             finally:
                 idx.close()
 
-        run_async(work, self._loaded, lambda m: self._show_empty(m.splitlines()[0]))
+        run_async(work, self._loaded, lambda m: self._show_empty("search", tr("Search failed"),
+                                                                 m.splitlines()[0], False))
 
     # ------------------------------------------------------------------ navigation
 
@@ -378,22 +457,26 @@ class RestoreTab(QWidget):
 
     def _update_buttons(self):
         sel = self._selected() if hasattr(self, "view") else []
-        live = getattr(self, "_live", False)
-        busy_ok = True
-        self.btn_restore.setEnabled(bool(sel) and live and busy_ok)
-        self.btn_restore_to.setEnabled(bool(sel) and live and busy_ok)
+        live = self._live
+        self.btn_restore.setEnabled(bool(sel) and live)
+        self.btn_restore_to.setEnabled(bool(sel) and live)
         self.btn_history.setEnabled(len(sel) == 1 and sel[0]["kind"] == "file")
         files = [r for r in sel if r["kind"] == "file"]
         if sel:
             size = sum(r["copy"].size for r in files)
             self.info.setText(tr("%1 selected").replace("%1", str(len(sel))) + (f" · {human_size(size)}" if files else ""))
-        else:
-            self.info.setText("")
+        self.bar.reveal(bool(sel))
+        self.hint.setVisible(not sel and not self.view.isHidden())
 
     def _restore_to(self):
         d = QFileDialog.getExistingDirectory(self, tr("Restore to which folder?"), os.path.expanduser("~"))
         if d:
             self.restore(d)
+
+    def _toast(self, text):
+        w = self.window()
+        if hasattr(w, "notify"):
+            w.notify(text)
 
     def restore(self, dest: str | None):
         sel = self._selected()
@@ -404,28 +487,31 @@ class RestoreTab(QWidget):
         self.btn_restore.setEnabled(False)
         self.btn_restore_to.setEnabled(False)
         self.info.setText(tr("Restoring…"))
+        self._last_result = None
 
         def prog(d):
             self.info.setText(tr("Restoring… %1 of %2").replace("%1", str(d.get("done", 0))).replace(
                 "%2", str(d.get("total", 0))))
 
         def done(res):
+            self._last_result = res
             self._update_buttons()
             msg = tr("Restored %1 items (%2). Every file was checked against its backup.").replace(
                 "%1", str(len(res.restored))).replace("%2", human_size(res.bytes))
-            if res.skipped:
-                msg += "\n" + tr("%1 were already identical and were left as they are.").replace(
-                    "%1", str(len(res.skipped)))
             renamed = [t for _c, t in res.restored if ".restored" in os.path.basename(t)]
+            extra = []
+            if res.skipped:
+                extra.append(tr("%1 were already identical and were left as they are.").replace(
+                    "%1", str(len(res.skipped))))
             if renamed:
-                msg += "\n" + tr("%1 were saved with “.restored” in the name because a file with the same name "
-                                 "already existed.").replace("%1", str(len(renamed)))
+                extra.append(tr("%1 were saved with “.restored” in the name because a file with the same name "
+                                "already existed.").replace("%1", str(len(renamed))))
             if res.failed:
-                msg += "\n\n" + tr("%1 could not be restored:").replace("%1", str(len(res.failed))) + "\n" + \
-                    "\n".join(f"• {t or ''}: {why}" for _c, t, why in res.failed[:10])
-                QMessageBox.warning(self, "VaultMove", msg)
+                details = "\n".join(f"• {t or ''}: {why}" for _c, t, why in res.failed[:10])
+                QMessageBox.warning(self, "VaultMove", "\n".join([msg] + extra) + "\n\n" + tr(
+                    "%1 could not be restored:").replace("%1", str(len(res.failed))) + "\n" + details)
             else:
-                QMessageBox.information(self, "VaultMove", msg)
+                self._toast(" ".join([msg] + extra))
             self.reload()
 
         def err(m):

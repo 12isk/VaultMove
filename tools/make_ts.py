@@ -314,6 +314,47 @@ FR = {
     "First backup: %1 files (%2).": "Première sauvegarde : %1 fichiers (%2).",
     "Tick the confirmation above to continue with “Free up space” turned on.":
         "Cochez la confirmation ci-dessus pour continuer avec « Libérer de l’espace » activé.",
+    "Show what would be copied and freed, without changing anything (Ctrl+P)":
+        "Montrer ce qui serait copié et libéré, sans rien modifier (Ctrl+P)",
+    "Stop the running backup (Ctrl+.)": "Arrêter la sauvegarde en cours (Ctrl+.)",
+    "Add a folder (Ctrl+N)": "Ajouter un dossier (Ctrl+N)",
+    "Remove the selected folder (Delete)": "Retirer le dossier sélectionné (Suppr)",
+    "No folders yet": "Aucun dossier pour l’instant",
+    "Add the folders you want to protect, or drop them here from Explorer.":
+        "Ajoutez les dossiers à protéger, ou déposez-les ici depuis l’Explorateur.",
+    "Drop folders here": "Déposez des dossiers ici",
+    "Removed “%1”; its copies stay on the backup drive":
+        "« %1 » retiré ; ses copies restent sur le disque de sauvegarde",
+    "Added “%1”": "« %1 » ajouté",
+    "Added %1 folders": "%1 dossiers ajoutés",
+    "Backup complete: %1 files copied (%2).": "Sauvegarde terminée : %1 fichiers copiés (%2).",
+    "General": "Général",
+    "Keyboard shortcuts": "Raccourcis clavier",
+    "Stop the running backup": "Arrêter la sauvegarde en cours",
+    "Back Up page": "Page Sauvegarde",
+    "Browse && Restore page": "Page Parcourir et restaurer",
+    "Close the window (keeps running)": "Fermer la fenêtre (VaultMove continue)",
+    "Open folder": "Ouvrir le dossier",
+    "Move along the timeline": "Se déplacer sur la chronologie",
+    "Clear the search": "Effacer la recherche",
+    "Settings saved": "Réglages enregistrés",
+    "Show the history of the selected file (Ctrl+I)": "Afficher l’historique du fichier sélectionné (Ctrl+I)",
+    "Restore into a folder you choose (Ctrl+Shift+R)": "Restaurer dans un dossier de votre choix (Ctrl+Maj+R)",
+    "Put the selected items back where they were (existing files are never overwritten) (Ctrl+R)":
+        "Remettre les éléments sélectionnés à leur place (les fichiers existants ne sont jamais écrasés) (Ctrl+R)",
+    "Select files or folders to restore them. Drag files out to copy them anywhere.":
+        "Sélectionnez des fichiers ou des dossiers pour les restaurer. Faites glisser des fichiers pour les copier où vous voulez.",
+    "Nothing to browse yet": "Rien à parcourir pour l’instant",
+    "No backups yet": "Aucune sauvegarde pour l’instant",
+    "Connect your backup drive and run a backup. Your files will appear here.":
+        "Branchez votre disque de sauvegarde et lancez une sauvegarde. Vos fichiers apparaîtront ici.",
+    "Could not read the index": "Impossible de lire l’index",
+    "No matches": "Aucun résultat",
+    "Nothing here at that time": "Rien ici à ce moment-là",
+    "Nothing was backed up in this folder at that time. Try a later date on the timeline.":
+        "Rien n’était sauvegardé dans ce dossier à ce moment-là. Essayez une date plus récente sur la chronologie.",
+    "Search failed": "La recherche a échoué",
+    "Nothing in any version matches “%1”.": "Aucune version ne correspond à « %1 ».",
     "This PC": "Ce PC",
     "Drive on this PC": "Disque de ce PC",
     "almost full": "presque plein",

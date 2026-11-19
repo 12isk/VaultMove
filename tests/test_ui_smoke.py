@@ -110,25 +110,26 @@ def test_backup_runs_and_ui_stays_responsive(qtbot, ctrl):
         if rt.model.row(i)["name"] == "Projects":
             rt._open(rt.model.index(i, 0))
     qtbot.waitUntil(lambda: rt.model.rowCount() == 30, timeout=10000)
-    rt.view.selectRow(0) if hasattr(rt.view, "selectRow") else rt.view.setCurrentIndex(rt.model.index(0, 0))
-    qtbot.wait(100)
-    shot(w, "03_browse_restore")
     sel = rt.view.selectionModel()
     from PySide6.QtCore import QItemSelectionModel
     sel.select(rt.model.index(0, 0), QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
+    qtbot.wait(450)  # let the action bar finish sliding in
+    shot(w, "03_browse_restore")
     assert rt._selected()
+    assert rt.bar.shown, "the action bar appears when something is selected"
+    # Drag out is copy-only (a move would take the file out of the backup).
+    from PySide6.QtCore import Qt as _Qt
+    assert rt.model.supportedDragActions() == _Qt.CopyAction
+    md = rt.model.mimeData([rt.model.index(0, 0)])
+    assert md.urls() and os.path.isfile(md.urls()[0].toLocalFile())
     dest = os.path.join(ctrl.cfg_dir, "restored")
-    from PySide6.QtWidgets import QMessageBox
-    msgs = []
-    orig_info = QMessageBox.information
-    QMessageBox.information = staticmethod(lambda *a, **k: msgs.append(a[2]) or QMessageBox.Ok)
-    try:
-        rt.restore(dest)
-        qtbot.waitUntil(lambda: bool(msgs), timeout=15000)
-    finally:
-        QMessageBox.information = orig_info
-    assert "Restored 1" in msgs[0]
+    rt.restore(dest)
+    qtbot.waitUntil(lambda: rt._last_result is not None, timeout=15000)
+    assert len(rt._last_result.restored) == 1
+    assert "Restored 1" in w.toast.text()
     assert os.listdir(dest)
+    qtbot.wait(300)
+    shot(w, "03b_restore_toast")
 
 
 def test_timeline_and_search(qtbot, ctrl, env):
@@ -146,7 +147,7 @@ def test_timeline_and_search(qtbot, ctrl, env):
     rt.timeline.setFocus()
     rt.timeline.set_index(len(rt.timeline.times) - 1)  # oldest backup
     qtbot.wait(400)
-    rt.search.setText("ideas")
+    w.search.setText("ideas")
     qtbot.waitUntil(lambda: rt.model.rowCount() == 2, timeout=10000)
     statuses = {rt.model.row(i)["status"] for i in range(2)}
     assert statuses == {"local", "older"}
@@ -258,6 +259,55 @@ def test_wizard_start_backup_without_clicking_preview(qtbot, qapp, tmp_path, mon
     assert c.cfg.wizard_done
     assert [s.path for s in c.cfg.sources] == [str(src)]
     assert vault.read_marker(str(tmp_path / "usb" / "VaultMove"))["uuid"] == c.cfg.vault.uuid
+
+
+def test_empty_states_shortcuts_and_drop(qtbot, qapp, tmp_path):
+    """macOS-skill patterns: empty states with a call to action, cheat sheet, drag folders in."""
+    from PySide6.QtCore import QMimeData, QPoint, QUrl, Qt
+    from PySide6.QtGui import QDropEvent
+    from vaultmove.app import theme
+    from vaultmove.app.controller import AppController
+    from vaultmove.app.mainwindow import ShortcutSheet
+    from vaultmove.core import config as cfgmod, vault
+    from vaultmove.core.config import Config
+    theme.apply(qapp, False)
+    vdir = tmp_path / "usb" / "VaultMove"
+    vdir.parent.mkdir()
+    vid = vault.create_vault(str(vdir))
+    cfg = Config()
+    cfg.vault = vault.vault_cfg_for(str(vdir), vid, allow_same_drive=True)
+    cfg.wizard_done = True
+    cdir = str(tmp_path / "cfg")
+    cfgmod.save(cfg, cdir)
+    c = AppController(qapp, cdir, enable_tray=False, enable_watch=False, enable_timer=False)
+    c.show_window()
+    w = c.window
+    qtbot.waitExposed(w)
+    bt = w.backup_tab
+    assert bt.folders_empty.isVisible() and not bt.list.isVisible()
+    shot(w, "15_empty_folders")
+    w.set_tab(1)
+    qtbot.waitUntil(lambda: w.restore_tab.empty.isVisible(), timeout=10000)
+    shot(w, "16_empty_browse")
+    w.set_tab(0)
+    # Drop a folder from Explorer onto the folders card.
+    folder = tmp_path / "Dropped Photos"
+    folder.mkdir()
+    md = QMimeData()
+    md.setUrls([QUrl.fromLocalFile(str(folder))])
+    ev = QDropEvent(QPoint(10, 10), Qt.CopyAction, md, Qt.LeftButton, Qt.NoModifier)
+    bt.eventFilter(bt.folders_card, ev)
+    assert [s.path for s in c.cfg.sources] == [str(folder)]
+    assert bt.list.isVisible() and not bt.folders_empty.isVisible()
+    qtbot.wait(300)
+    assert "Dropped Photos" in w.toast.text()
+    shot(w, "17_folder_dropped_toast")
+    sheet = ShortcutSheet(w)
+    sheet.show()
+    qtbot.waitExposed(sheet)
+    shot(sheet, "18_shortcuts")
+    sheet.reject()
+    w.hide()
 
 
 def test_this_pc_card_shows_storage(qtbot, ctrl):

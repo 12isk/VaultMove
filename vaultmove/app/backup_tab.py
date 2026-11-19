@@ -5,16 +5,26 @@ from __future__ import annotations
 import os
 import shutil
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QListWidget, QListWidgetItem, QMessageBox,
-                               QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QSizePolicy, QSpinBox,
-                               QStyle, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+                               QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QSizePolicy,
+                               QSpinBox, QStyle, QToolButton, QVBoxLayout, QWidget)
 
 from ..core import fsutil, winapi
 from ..core.config import SourceCfg, make_source_id
 from .i18n import tr
-from .widgets import Card, Collapsible, StatusBadge, Switch, hbox, human_size, label, primary_button
+from .symbols import render as render_symbol, symbol
+from .widgets import (Card, Collapsible, EmptyState, StatusBadge, Switch, hbox, human_size, icon_button, kbd, label,
+                      primary_button)
+
+
+def header(symbol_name: str, text: str) -> QHBoxLayout:
+    """Card title with a small monoline symbol (icon-to-label gap 6 px)."""
+    from . import theme
+    ic = QLabel()
+    ic.setPixmap(render_symbol(symbol_name, 16, theme.color("subtext")))
+    return hbox(ic, label(text, "H2"), None, spacing=6)
 
 
 class BackupTab(QScrollArea):
@@ -53,17 +63,23 @@ class BackupTab(QScrollArea):
         col.addSpacing(4)
         col.addWidget(self.progress)
         col.addWidget(self.lb_current)
-        btns = QVBoxLayout()
-        btns.setSpacing(8)
+        btns = QGridLayout()
+        btns.setHorizontalSpacing(8)
+        btns.setVerticalSpacing(8)
         self.btn_backup = primary_button(tr("Back Up Now"))
         self.btn_backup.setToolTip(tr("Start a backup now (Ctrl+B)"))
         self.btn_preview = QPushButton(tr("Preview…"))
-        self.btn_preview.setToolTip(tr("Show what would be copied and freed, without changing anything"))
+        self.btn_preview.setToolTip(tr("Show what would be copied and freed, without changing anything (Ctrl+P)"))
         self.btn_stop = QPushButton(tr("Stop"))
-        for b in (self.btn_backup, self.btn_preview, self.btn_stop):
-            b.setMinimumWidth(140)
-            btns.addWidget(b)
-        btns.addStretch(1)
+        self.btn_stop.setIcon(symbol("stop", 14))
+        self.btn_stop.setToolTip(tr("Stop the running backup (Ctrl+.)"))
+        self.kbd_backup, self.kbd_preview, self.kbd_stop = kbd("Ctrl+B"), kbd("Ctrl+P"), kbd("Ctrl+.")
+        for r, (b, k) in enumerate(((self.btn_backup, self.kbd_backup), (self.btn_preview, self.kbd_preview),
+                                    (self.btn_stop, self.kbd_stop))):
+            b.setMinimumWidth(150)
+            btns.addWidget(k, r, 0, Qt.AlignRight | Qt.AlignVCenter)
+            btns.addWidget(b, r, 1)
+        btns.setRowStretch(3, 1)
         row.addWidget(self.badge, 0, Qt.AlignTop)
         row.addLayout(col, 1)
         row.addLayout(btns)
@@ -74,7 +90,7 @@ class BackupTab(QScrollArea):
         mid = QHBoxLayout()
         mid.setSpacing(16)
         self.pc_card = Card()
-        self.pc_card.add(label(tr("This PC"), "H2"))
+        self.pc_card.add(header("laptop", tr("This PC")))
         self.pc_box = QVBoxLayout()
         self.pc_box.setSpacing(6)
         self.pc_card.add(self.pc_box)
@@ -82,7 +98,7 @@ class BackupTab(QScrollArea):
         self._pc_rows: list = []
         mid.addWidget(self.pc_card, 1)
         self.drive_card = Card()
-        self.drive_card.add(label(tr("Backup drive"), "H2"))
+        self.drive_card.add(header("drive", tr("Backup drive")))
         self.lb_drive = label("", "Stat")
         self.lb_drive.setAccessibleName(tr("Backup drive name"))
         self.drive_bar = QProgressBar()
@@ -100,7 +116,7 @@ class BackupTab(QScrollArea):
         v.addLayout(mid)
 
         self.free_card = Card()
-        self.free_card.add(label(tr("Free up space"), "H2"))
+        self.free_card.add(header("restore", tr("Free up space")))
         self.sw_offload = Switch(accessible_name=tr("Free up space on this PC"))
         self.lb_off_a = label(tr("Remove originals not changed for"))
         self.spin_days = QSpinBox()
@@ -109,28 +125,31 @@ class BackupTab(QScrollArea):
         self.spin_days.setAccessibleName(tr("Days before freeing space"))
         self.free_card.add(hbox(self.sw_offload, 6, self.lb_off_a, self.spin_days, None))
         self.lb_off_info = label("", "Subtle", wrap=True)
-        self.free_card.add(self.lb_off_info)
-        self.free_card.layout().addStretch(1)
         self.btn_off_preview = QPushButton(tr("Preview…"))
-        self.free_card.add(hbox(None, self.btn_off_preview))
+        row_info = hbox(self.lb_off_info, self.btn_off_preview, spacing=16)
+        row_info.setStretch(0, 1)
+        self.free_card.add(row_info)
+        self.lb_off_info.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         v.addWidget(self.free_card)
 
         # ---------------------------------------------------------- folders
         self.folders_card = Card(shadow=True)
-        self.btn_add = QToolButton()
-        self.btn_add.setText("+")
-        self.btn_add.setToolTip(tr("Add a folder"))
-        self.btn_add.setAccessibleName(tr("Add a folder"))
-        self.btn_remove = QToolButton()
-        self.btn_remove.setText("−")
-        self.btn_remove.setToolTip(tr("Remove the selected folder"))
-        self.btn_remove.setAccessibleName(tr("Remove the selected folder"))
-        self.folders_card.add(hbox(label(tr("Folders to back up"), "H2"), None, self.btn_add, self.btn_remove))
+        self.btn_add = icon_button("plus", tr("Add a folder (Ctrl+N)"))
+        self.btn_remove = icon_button("minus", tr("Remove the selected folder (Delete)"))
+        self.folders_card.add(hbox(header("folder", tr("Folders to back up")), None,
+                                   label(tr("Drop folders here"), "Caption"), 8, self.btn_add, self.btn_remove))
         self.list = QListWidget()
         self.list.setAccessibleName(tr("Folders to back up"))
         self.list.setMinimumHeight(120)
         self.list.setUniformItemSizes(True)
         self.folders_card.add(self.list)
+        self.folders_empty = EmptyState("folder", tr("No folders yet"),
+                                        tr("Add the folders you want to protect, or drop them here from Explorer."),
+                                        tr("Add a Folder…"))
+        self.folders_empty.button.clicked.connect(self.add_folder)
+        self.folders_card.add(self.folders_empty)
+        self.folders_card.setAcceptDrops(True)
+        self.folders_card.installEventFilter(self)
         v.addWidget(self.folders_card)
 
         # ---------------------------------------------------------- log
@@ -156,6 +175,8 @@ class BackupTab(QScrollArea):
         self.sw_offload.toggled.connect(self._offload_toggled)
         self.spin_days.valueChanged.connect(self._days_changed)
         QShortcut(QKeySequence.Delete, self.list, activated=self.remove_folder)
+        QShortcut(QKeySequence("Ctrl+N"), self, activated=self.add_folder)
+        QShortcut(QKeySequence("Ctrl+P"), self, activated=self.preview)
         ctrl.stateChanged.connect(self.refresh)
         ctrl.progressChanged.connect(self._on_progress)
         ctrl.service.logLine.connect(self.log.appendPlainText)
@@ -175,6 +196,7 @@ class BackupTab(QScrollArea):
         self.progress.setVisible(busy)
         self.lb_current.setVisible(busy)
         self.btn_stop.setVisible(busy)
+        self.kbd_stop.setVisible(busy)
         self.btn_backup.setEnabled(not busy and bool(self.ctrl.vault_root))
         self.btn_preview.setEnabled(not busy and bool(self.ctrl.vault_root))
         self.btn_off_preview.setEnabled(not busy and bool(self.ctrl.vault_root) and c.offload.enabled)
@@ -222,7 +244,7 @@ class BackupTab(QScrollArea):
         # Folders
         sel = self.list.currentRow()
         self.list.clear()
-        icon = self.style().standardIcon(QStyle.SP_DirIcon)
+        icon = symbol("folder", 16, "accent")
         cloud_roots = fsutil.cloud_sync_roots()
         for s in c.sources:
             ok = os.path.isdir(s.path)
@@ -233,10 +255,9 @@ class BackupTab(QScrollArea):
             it.setData(Qt.UserRole, s.path)
             it.setToolTip(s.path)
             self.list.addItem(it)
-        if not c.sources:
-            it = QListWidgetItem(tr("No folders yet. Click + to add one."))
-            it.setFlags(Qt.NoItemFlags)
-            self.list.addItem(it)
+        self.list.setVisible(bool(c.sources))
+        self.folders_empty.setVisible(not c.sources)
+        self.btn_remove.setVisible(bool(c.sources))
         if 0 <= sel < self.list.count():
             self.list.setCurrentRow(sel)
 
@@ -346,18 +367,63 @@ class BackupTab(QScrollArea):
         self.ctrl.cfg.offload.after_days = int(v)
         self.ctrl.save()
 
+    def _toast(self, text: str):
+        w = self.window()
+        if hasattr(w, "notify"):
+            w.notify(text)
+
     def add_folder(self):
         d = QFileDialog.getExistingDirectory(self, tr("Choose a folder to back up"), os.path.expanduser("~"))
-        if not d:
-            return
-        err = validate_new_source(self.ctrl.cfg, d, self.ctrl.vault_root)
-        if err:
-            QMessageBox.warning(self, "VaultMove", err)
-            return
-        p = fsutil.normroot(d)
-        self.ctrl.cfg.sources.append(SourceCfg(path=p, id=make_source_id(p)))
-        self.ctrl.save()
-        self.refresh()
+        if d:
+            self.add_paths([d])
+
+    def add_paths(self, paths: list[str]) -> int:
+        """Add folders (from the dialog or dropped from Explorer). Returns how many were added."""
+        added, errors = [], []
+        for d in paths:
+            if not os.path.isdir(d):
+                continue
+            err = validate_new_source(self.ctrl.cfg, d, self.ctrl.vault_root)
+            if err:
+                errors.append(f"{d}: {err}")
+                continue
+            p = fsutil.normroot(d)
+            self.ctrl.cfg.sources.append(SourceCfg(path=p, id=make_source_id(p)))
+            added.append(p)
+        if added:
+            self.ctrl.save()
+            self.refresh()
+            self._toast(tr("Added “%1”").replace("%1", os.path.basename(added[0]) or added[0]) if len(added) == 1
+                        else tr("Added %1 folders").replace("%1", str(len(added))))
+        if errors:
+            QMessageBox.warning(self, "VaultMove", "\n\n".join(errors))
+        return len(added)
+
+    # Drag folders in from Explorer: the card highlights as a drop zone (dashed accent border).
+    def eventFilter(self, obj, ev):  # noqa: N802
+        if obj is getattr(self, "folders_card", None):
+            t = ev.type()
+            if t in (QEvent.DragEnter, QEvent.DragMove):
+                urls = ev.mimeData().urls() if ev.mimeData().hasUrls() else []
+                if any(u.isLocalFile() and os.path.isdir(u.toLocalFile()) for u in urls):
+                    ev.acceptProposedAction()
+                    self._drop_highlight(True)
+                    return True
+            elif t == QEvent.DragLeave:
+                self._drop_highlight(False)
+                return True
+            elif t == QEvent.Drop:
+                self._drop_highlight(False)
+                paths = [u.toLocalFile() for u in ev.mimeData().urls() if u.isLocalFile()]
+                ev.acceptProposedAction()
+                self.add_paths(paths)
+                return True
+        return super().eventFilter(obj, ev)
+
+    def _drop_highlight(self, on: bool):
+        self.folders_card.setObjectName("DropTarget" if on else "Card")
+        self.folders_card.style().unpolish(self.folders_card)
+        self.folders_card.style().polish(self.folders_card)
 
     def remove_folder(self):
         it = self.list.currentItem()
@@ -373,6 +439,8 @@ class BackupTab(QScrollArea):
         if s:
             self.ctrl.cfg.sources.remove(s)
             self.ctrl.save()
+            self._toast(tr("Removed “%1”; its copies stay on the backup drive").replace(
+                "%1", os.path.basename(path) or path))
         self.refresh()
 
     def change_drive(self):

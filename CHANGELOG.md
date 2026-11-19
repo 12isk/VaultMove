@@ -6,6 +6,16 @@
   SHA-256 checksum, and upgrades in place (installed or portable). Settings and backups are kept. VaultMove only
   goes online when you click the button.
 * **This PC** card on the Back Up page: used and free space of the drive(s) holding your backed-up folders.
+* **New look**, following the macOS design skill:
+  * a 52 px top bar with search always visible (Ctrl+F) and a settings gear;
+  * Apple's type scale and colours, 8 px cards, hairline edges, monoline icons;
+  * keyboard hints next to the actions and a shortcut cheat sheet (Ctrl+/);
+  * toasts for confirmations and proper empty states;
+  * a floating action bar that appears when files are selected;
+  * new shortcuts: Ctrl+R, Ctrl+Shift+R, Ctrl+I, Ctrl+N, Ctrl+P, Ctrl+.;
+  * drag folders in from Explorer, drag files out (copy only, so a drag can never move a file out of the backup);
+  * a page-slide transition.
+  The standard Windows title bar is kept.
 * **Safety:** files in a OneDrive folder could be freed (sent to the Recycle Bin), which also removes them from
   OneDrive. Cause: Windows disguises OneDrive placeholders from apps that don't opt in, so the folder looked
   ordinary. VaultMove now opts in and never frees space in any cloud-synced folder (still backs it up).

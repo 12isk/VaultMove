@@ -246,9 +246,17 @@ class AppController(QObject):
                 c.last_scanned = st["scanned"]
             self.save()
         self.refresh_vault()
+        window_up = self.window is not None and self.window.isVisible()
+        if window_up and status in ("ok", "partial") and d.get("manual"):
+            # Window open: a quiet in-window toast instead of a system notification.
+            msg = tr("Backup complete: %1 files copied (%2).").replace("%1", str(st.get("copied", 0))).replace(
+                "%2", human_size(st.get("copied_bytes", 0)))
+            if st.get("offloaded"):
+                msg += " " + tr("%1 freed on this PC.").replace("%1", human_size(st.get("offloaded_bytes", 0)))
+            self.window.notify(msg)
         if self.tray is not None:
             if status in ("ok", "partial"):
-                if d.get("manual"):
+                if d.get("manual") and not window_up:
                     msg = tr("%1 files copied (%2).").replace("%1", str(st.get("copied", 0))).replace(
                         "%2", human_size(st.get("copied_bytes", 0)))
                     if st.get("offloaded"):

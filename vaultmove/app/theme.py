@@ -1,7 +1,11 @@
-"""Design tokens, one QSS template, and light/dark switching that follows Windows.
+"""Design tokens, one QSS template, light/dark switching that follows Windows.
 
-Widgets never hard-code colours: they use objectNames that the template
-styles (Card, Primary, Segment, Title, Subtle...) or read theme.tokens().
+Values follow the macOS design skill (~/.claude/skills/macos-design): hierarchy
+through background levels (not borders), hairline low-opacity edges, the Apple
+type scale (13 px body), 8 px grid, radii 8 (cards) / 6 (controls) / 12 (panels),
+28 px controls, 34 px large buttons. Light and dark are designed separately:
+dark spreads its background levels further apart instead of inverting light.
+Widgets never hard-code colours: they use objectNames styled here, or tokens().
 """
 
 from __future__ import annotations
@@ -13,85 +17,114 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication
 
 LIGHT = {
-    "bg": "#f5f5f7", "card": "#ffffff", "card_border": "#e8e8ed", "text": "#1d1d1f", "subtext": "#6e6e73",
-    "border": "#d2d2d7", "field": "#ffffff", "button": "#ffffff", "hover": "#f0f0f5", "pressed": "#e5e5ea",
-    "accent": "#0a84ff", "accent_hover": "#3395ff", "accent_pressed": "#0060df", "accent_disabled": "#a8cfff",
-    "selection": "#d6e8ff", "segment_bg": "#e3e3e8", "track": "#e5e5ea", "scroll": "#c7c7cc",
-    "disabled": "#aeaeb2", "danger": "#ff3b30", "success": "#30b158", "warning": "#ff9500",
-    "badge_local_bg": "#e3f5e8", "badge_local_fg": "#1e7b3a", "badge_vault_bg": "#e5f0ff",
-    "badge_vault_fg": "#0060df", "badge_old_bg": "#efeff4", "badge_old_fg": "#6e6e73",
+    # background levels: window, sections/top bar, cards, inputs
+    "bg": "#f5f5f7", "bar": "#fbfbfd", "card": "#ffffff", "tertiary": "#e8e8ed", "field": "#ffffff",
+    "text": "#1d1d1f", "subtext": "#6e6e73", "tertext": "#aeaeb2",
+    "edge": "rgba(0,0,0,0.08)", "edge_strong": "rgba(0,0,0,0.15)",
+    "hover": "rgba(0,0,0,0.04)", "pressed": "rgba(0,0,0,0.08)",
+    "button": "#ffffff", "accent": "#007aff", "accent_hover": "#0066d6", "accent_pressed": "#0058b8",
+    "accent_disabled": "#a9cdfa", "accent_soft": "rgba(0,122,255,0.10)",
+    "selection": "rgba(0,122,255,0.14)", "segment_bg": "rgba(0,0,0,0.06)", "track": "#e5e5ea",
+    "scroll": "rgba(0,0,0,0.22)", "disabled": "#aeaeb2",
+    "danger": "#ff3b30", "success": "#34c759", "warning": "#c76f00",
+    "badge_local_bg": "rgba(52,199,89,0.14)", "badge_local_fg": "#1d7a37",
+    "badge_vault_bg": "rgba(0,122,255,0.12)", "badge_vault_fg": "#0058b8",
+    "badge_old_bg": "rgba(0,0,0,0.06)", "badge_old_fg": "#6e6e73",
+    "toast_bg": "rgba(40,40,42,0.94)", "toast_fg": "#ffffff", "kbd_bg": "rgba(128,128,128,0.12)",
 }
 
 DARK = {
-    "bg": "#1c1c1e", "card": "#2c2c2e", "card_border": "#3a3a3c", "text": "#f5f5f7", "subtext": "#98989d",
-    "border": "#48484a", "field": "#1c1c1e", "button": "#3a3a3c", "hover": "#3f3f42", "pressed": "#4a4a4d",
-    "accent": "#0a84ff", "accent_hover": "#409cff", "accent_pressed": "#0068d6", "accent_disabled": "#1d4f86",
-    "selection": "#0b3e74", "segment_bg": "#1c1c1e", "track": "#3a3a3c", "scroll": "#545458",
-    "disabled": "#636366", "danger": "#ff453a", "success": "#32d74b", "warning": "#ff9f0a",
-    "badge_local_bg": "#16361f", "badge_local_fg": "#5fe07c", "badge_vault_bg": "#0c2f57",
-    "badge_vault_fg": "#6cb4ff", "badge_old_bg": "#3a3a3c", "badge_old_fg": "#a1a1a6",
+    "bg": "#1c1c1e", "bar": "#232325", "card": "#2c2c2e", "tertiary": "#3a3a3c", "field": "#1c1c1e",
+    "text": "#f5f5f7", "subtext": "#98989d", "tertext": "#636366",
+    "edge": "rgba(255,255,255,0.08)", "edge_strong": "rgba(255,255,255,0.15)",
+    "hover": "rgba(255,255,255,0.06)", "pressed": "rgba(255,255,255,0.10)",
+    "button": "#3a3a3c", "accent": "#0a84ff", "accent_hover": "#409cff", "accent_pressed": "#0a6fd6",
+    "accent_disabled": "#1d4f86", "accent_soft": "rgba(10,132,255,0.18)",
+    "selection": "rgba(10,132,255,0.32)", "segment_bg": "rgba(255,255,255,0.07)", "track": "#3a3a3c",
+    "scroll": "rgba(255,255,255,0.25)", "disabled": "#636366",
+    "danger": "#ff453a", "success": "#30d158", "warning": "#ff9f0a",
+    "badge_local_bg": "rgba(48,209,88,0.18)", "badge_local_fg": "#5fe07c",
+    "badge_vault_bg": "rgba(10,132,255,0.24)", "badge_vault_fg": "#6cb4ff",
+    "badge_old_bg": "rgba(255,255,255,0.08)", "badge_old_fg": "#a1a1a6",
+    "toast_bg": "rgba(58,58,60,0.96)", "toast_fg": "#f5f5f7", "kbd_bg": "rgba(128,128,128,0.22)",
 }
 
+# Apple type scale (px): Large Title 26 bold, Title 3 15 semibold, Body 13, Callout 12, Caption 11.
 QSS = Template("""
-QWidget { color: $text; font-family: "$font"; }
+QWidget { color: $text; font-family: "$font"; font-size: 13px; }
 QMainWindow, QDialog, QWidget#Page, QScrollArea, QScrollArea > QWidget > QWidget#Page { background: $bg; }
 QWidget#Transparent { background: transparent; }
-QFrame#Card { background: $card; border: 1px solid $card_border; border-radius: 14px; }
+QWidget#TopBar { background: $bar; border-bottom: 1px solid $edge; }
+QFrame#Card { background: $card; border: 1px solid $edge; border-radius: 8px; }
+QFrame#Panel { background: $card; border: 1px solid $edge_strong; border-radius: 12px; }
+QFrame#ActionBar { background: $card; border: 1px solid $edge_strong; border-radius: 10px; }
+QFrame#DropTarget { background: $accent_soft; border: 2px dashed $accent; border-radius: 8px; }
 QLabel { background: transparent; }
-QLabel#Title { font-size: 19pt; font-weight: 600; }
-QLabel#H2 { font-size: 12pt; font-weight: 600; }
-QLabel#AppName { font-size: 12pt; font-weight: 600; }
-QLabel#Subtle { color: $subtext; }
-QLabel#Danger { color: $danger; }
-QLabel#Warning { color: $warning; }
-QLabel#Stat { font-size: 15pt; font-weight: 600; }
+QLabel#Title { font-size: 26px; font-weight: 700; }
+QLabel#Title1 { font-size: 22px; font-weight: 400; }
+QLabel#H2 { font-size: 15px; font-weight: 600; }
+QLabel#AppName { font-size: 15px; font-weight: 600; }
+QLabel#Subtle { color: $subtext; font-size: 12px; }
+QLabel#Caption { color: $subtext; font-size: 11px; }
+QLabel#Danger { color: $danger; font-size: 12px; }
+QLabel#Warning { color: $warning; font-size: 12px; }
+QLabel#Stat { font-size: 17px; font-weight: 600; }
+QLabel#EmptyTitle { font-size: 17px; font-weight: 600; }
+QLabel#Kbd { color: $subtext; background: $kbd_bg; border: 1px solid $edge; border-radius: 4px;
+             padding: 1px 6px; font-size: 11px; }
+QLabel#Toast { color: $toast_fg; background: $toast_bg; border-radius: 10px; padding: 10px 16px;
+               font-size: 13px; font-weight: 500; }
 
-QPushButton { background: $button; border: 1px solid $border; border-radius: 8px; padding: 6px 14px;
+QPushButton { background: $button; border: 1px solid $edge_strong; border-radius: 6px; padding: 4px 12px;
               min-height: 18px; }
 QPushButton:hover { background: $hover; }
 QPushButton:pressed { background: $pressed; }
 QPushButton:focus { border: 1px solid $accent; }
-QPushButton:disabled { color: $disabled; }
+QPushButton:disabled { color: $disabled; border-color: $edge; }
 QPushButton#Primary { background: $accent; color: #ffffff; border: 1px solid $accent; font-weight: 600;
-                      padding: 8px 22px; border-radius: 10px; }
+                      padding: 7px 18px; border-radius: 6px; }
 QPushButton#Primary:hover { background: $accent_hover; border-color: $accent_hover; }
 QPushButton#Primary:pressed { background: $accent_pressed; }
 QPushButton#Primary:focus { border: 2px solid $text; }
 QPushButton#Primary:disabled { background: $accent_disabled; border-color: $accent_disabled; color: #ffffff; }
 QPushButton#Link { background: transparent; border: none; color: $accent; padding: 2px 4px; }
 QPushButton#Link:hover { text-decoration: underline; }
-QPushButton#Link:focus { border: 1px solid $accent; }
-QWidget#SegmentBar { background: $segment_bg; border-radius: 10px; }
-QPushButton#Segment { background: transparent; border: 1px solid transparent; border-radius: 8px;
-                      padding: 5px 18px; color: $subtext; }
+QWidget#SegmentBar { background: $segment_bg; border-radius: 7px; }
+QPushButton#Segment { background: transparent; border: 1px solid transparent; border-radius: 6px;
+                      padding: 3px 16px; color: $subtext; min-height: 18px; }
 QPushButton#Segment:hover { color: $text; }
-QPushButton#Segment:checked { background: $card; color: $text; font-weight: 600; border: 1px solid $card_border; }
+QPushButton#Segment:checked { background: $card; color: $text; font-weight: 600; border: 1px solid $edge; }
 QPushButton#Segment:focus { border: 1px dashed $accent; }
-QToolButton { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; }
+QToolButton { background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px; }
 QToolButton:hover { background: $hover; }
+QToolButton:pressed { background: $pressed; }
 QToolButton:focus { border: 1px solid $accent; }
 QToolButton:disabled { color: $disabled; }
 
 QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QDateTimeEdit {
-    background: $field; border: 1px solid $border; border-radius: 8px; padding: 5px 8px;
-    selection-background-color: $accent; selection-color: #ffffff; }
+    background: $field; border: 1px solid $edge_strong; border-radius: 6px; padding: 4px 8px;
+    selection-background-color: $accent; selection-color: #ffffff; min-height: 18px; }
+QLineEdit#Search { background: $segment_bg; border: 1px solid transparent; border-radius: 7px; padding: 4px 8px; }
+QLineEdit#Search:focus { background: $field; border: 1px solid $accent; }
 QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QPlainTextEdit:focus { border: 1px solid $accent; }
-QComboBox QAbstractItemView { background: $card; border: 1px solid $border; selection-background-color: $accent;
+QComboBox QAbstractItemView { background: $card; border: 1px solid $edge_strong; selection-background-color: $accent;
                               selection-color: #ffffff; outline: 0; }
-QPlainTextEdit#Log { font-family: "Cascadia Mono", "Consolas", monospace; font-size: 9pt; color: $subtext; }
+QPlainTextEdit#Log { font-family: "Cascadia Mono", "Consolas", monospace; font-size: 12px; color: $subtext;
+                     border: 1px solid $edge; }
 
 QListWidget, QTreeView, QTableView { background: transparent; border: none; outline: 0; }
-QListWidget::item, QTreeView::item { padding: 6px 4px; border: none; }
-QListWidget::item:selected, QTreeView::item:selected { background: $selection; color: $text; border-radius: 6px; }
-QListWidget::item:hover, QTreeView::item:hover { background: $hover; border-radius: 6px; }
+QListWidget::item { padding: 6px 4px; border: none; min-height: 22px; }
+QTreeView::item { padding: 0 4px; border: none; height: 34px; }
+QListWidget::item:selected, QTreeView::item:selected { background: $selection; color: $text; }
+QListWidget::item:hover, QTreeView::item:hover { background: $hover; }
 QHeaderView { background: transparent; }
-QHeaderView::section { background: transparent; color: $subtext; border: none; border-bottom: 1px solid $card_border;
-                       padding: 6px 4px; font-weight: 600; }
+QHeaderView::section { background: transparent; color: $subtext; border: none; border-bottom: 1px solid $edge;
+                       padding: 6px 4px; font-weight: 600; font-size: 11px; }
 
-QProgressBar { background: $track; border: none; border-radius: 4px; max-height: 8px; min-height: 8px; }
-QProgressBar::chunk { background: $accent; border-radius: 4px; }
-QProgressBar#Thin { max-height: 6px; min-height: 6px; border-radius: 3px; }
-QProgressBar#Thin::chunk { border-radius: 3px; }
+QProgressBar { background: $track; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
+QProgressBar::chunk { background: $accent; border-radius: 3px; }
+QProgressBar#Thin { max-height: 4px; min-height: 4px; border-radius: 2px; }
+QProgressBar#Thin::chunk { border-radius: 2px; }
 
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: $scroll; border-radius: 3px; min-height: 30px; }
@@ -100,15 +133,15 @@ QScrollBar::handle:horizontal { background: $scroll; border-radius: 3px; min-wid
 QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page { width: 0; height: 0;
     background: transparent; }
 
-QMenu { background: $card; border: 1px solid $border; border-radius: 8px; padding: 4px; }
-QMenu::item { padding: 6px 22px; border-radius: 5px; }
+QMenu { background: $card; border: 1px solid $edge_strong; border-radius: 8px; padding: 4px; }
+QMenu::item { padding: 5px 20px; border-radius: 4px; }
 QMenu::item:selected { background: $accent; color: #ffffff; }
 QMenu::item:disabled { color: $disabled; }
-QMenu::separator { height: 1px; background: $card_border; margin: 4px 8px; }
-QToolTip { background: $card; color: $text; border: 1px solid $border; padding: 4px 6px; }
+QMenu::separator { height: 1px; background: $edge; margin: 4px 8px; }
+QToolTip { background: $card; color: $text; border: 1px solid $edge_strong; padding: 3px 6px; border-radius: 4px; }
 QCheckBox { spacing: 8px; background: transparent; }
 QCheckBox::indicator, QListView::indicator, QTreeView::indicator {
-    width: 16px; height: 16px; border: 1px solid $border; border-radius: 5px; background: $field; }
+    width: 16px; height: 16px; border: 1px solid $edge_strong; border-radius: 4px; background: $field; }
 QCheckBox::indicator:hover, QListView::indicator:hover { border-color: $accent; }
 QCheckBox::indicator:focus { border: 1px solid $accent; }
 QCheckBox::indicator:checked, QListView::indicator:checked, QTreeView::indicator:checked {
@@ -127,6 +160,11 @@ QSpinBox::up-arrow { image: url($img_up); width: 10px; height: 10px; }
 QSpinBox::down-arrow { image: url($img_down); width: 10px; height: 10px; }
 """)
 
+# Animation timings from the skill (ease-out ~ OutQuad; fast 150 ms, normal 250 ms, slow 400 ms).
+FAST, NORMAL, SLOW = 150, 250, 400
+
+_current = dict(LIGHT)
+_dark = False
 _asset_dir = None
 
 
@@ -164,9 +202,6 @@ def _assets(dark: bool) -> dict:
     draw("up", [(12, 30), (24, 18), (36, 30)], sub, 5)
     return out
 
-_current = dict(LIGHT)
-_dark = False
-
 
 def tokens() -> dict:
     return _current
@@ -177,7 +212,12 @@ def is_dark() -> bool:
 
 
 def color(name: str) -> QColor:
-    return QColor(_current[name])
+    """QColor for a token; accepts both #rrggbb and rgba(r,g,b,a) values."""
+    v = _current[name]
+    if v.startswith("rgba("):
+        r, g, b, a = (x.strip() for x in v[5:-1].split(","))
+        return QColor(int(r), int(g), int(b), int(float(a) * 255))
+    return QColor(v)
 
 
 def system_is_dark(app: QApplication) -> bool:
@@ -204,27 +244,20 @@ def apply(app: QApplication, dark: bool | None = None):
     app.setStyle("Fusion")
     fam = ui_font_family()
     f = QFont(fam)
-    f.setPointSizeF(10)
+    f.setPixelSize(13)
     app.setFont(f)
     pal = QPalette()
-    t = _current
-    pal.setColor(QPalette.Window, QColor(t["bg"]))
-    pal.setColor(QPalette.WindowText, QColor(t["text"]))
-    pal.setColor(QPalette.Base, QColor(t["field"]))
-    pal.setColor(QPalette.AlternateBase, QColor(t["hover"]))
-    pal.setColor(QPalette.Text, QColor(t["text"]))
-    pal.setColor(QPalette.Button, QColor(t["button"]))
-    pal.setColor(QPalette.ButtonText, QColor(t["text"]))
-    pal.setColor(QPalette.Highlight, QColor(t["accent"]))
+    for role, tok in ((QPalette.Window, "bg"), (QPalette.WindowText, "text"), (QPalette.Base, "field"),
+                      (QPalette.AlternateBase, "tertiary"), (QPalette.Text, "text"), (QPalette.Button, "button"),
+                      (QPalette.ButtonText, "text"), (QPalette.Highlight, "accent"),
+                      (QPalette.ToolTipBase, "card"), (QPalette.ToolTipText, "text"),
+                      (QPalette.PlaceholderText, "subtext"), (QPalette.Link, "accent")):
+        pal.setColor(role, color(tok))
     pal.setColor(QPalette.HighlightedText, QColor("#ffffff"))
-    pal.setColor(QPalette.ToolTipBase, QColor(t["card"]))
-    pal.setColor(QPalette.ToolTipText, QColor(t["text"]))
-    pal.setColor(QPalette.PlaceholderText, QColor(t["subtext"]))
-    pal.setColor(QPalette.Link, QColor(t["accent"]))
     for role in (QPalette.WindowText, QPalette.Text, QPalette.ButtonText):
-        pal.setColor(QPalette.Disabled, role, QColor(t["disabled"]))
+        pal.setColor(QPalette.Disabled, role, color("disabled"))
     app.setPalette(pal)
-    app.setStyleSheet(QSS.substitute(font=fam, **t, **_assets(dark)))
+    app.setStyleSheet(QSS.substitute(font=fam, **_current, **_assets(dark)))
 
 
 class ThemeManager(QObject):

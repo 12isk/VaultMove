@@ -70,15 +70,17 @@ class Card(QFrame):
         self._layout.setSpacing(spacing)
         self._shadow = None
         if shadow:
+            # "Subtle" level: the hairline edge comes from the QSS border, this adds the soft drop.
             self._shadow = QGraphicsDropShadowEffect(self)
-            self._shadow.setOffset(0, 2)
-            self._shadow.setBlurRadius(24)
+            self._shadow.setOffset(0, 1)
+            self._shadow.setBlurRadius(10)
             self.refresh_theme()
             self.setGraphicsEffect(self._shadow)
 
     def refresh_theme(self):
         if self._shadow is not None:
-            self._shadow.setColor(QColor(0, 0, 0, 90 if theme.is_dark() else 22))
+            # Dark mode shadows ~2x stronger (they are harder to see on dark backgrounds).
+            self._shadow.setColor(QColor(0, 0, 0, 60 if theme.is_dark() else 16))
 
     def layout(self) -> QVBoxLayout:  # type: ignore[override]
         return self._layout
@@ -121,6 +123,176 @@ def hbox(*widgets, spacing: int = 8, margins=(0, 0, 0, 0)) -> QHBoxLayout:
         else:
             h.addLayout(w)
     return h
+
+
+def kbd(text: str, parent=None) -> QLabel:
+    """A keyboard-shortcut hint chip, e.g. kbd('Ctrl B')."""
+    lb = QLabel(text, parent)
+    lb.setObjectName("Kbd")
+    lb.setAccessibleName(text)
+    return lb
+
+
+def icon_button(name: str, tooltip: str, parent=None, size: int = 16) -> QToolButton:
+    """28x28 toolbar icon button with a monoline symbol."""
+    from .symbols import symbol
+    b = QToolButton(parent)
+    b.setIcon(symbol(name, size))
+    b.setIconSize(QSize(size, size))
+    b.setFixedSize(30, 30)
+    b.setToolTip(tooltip)
+    b.setAccessibleName(tooltip.split(" (")[0])
+    b.setCursor(Qt.PointingHandCursor)
+    b._symbol = name
+    return b
+
+
+def refresh_symbols(root: QWidget):
+    """Re-tint every icon_button under root after a light/dark switch."""
+    from .symbols import symbol
+    for b in root.findChildren(QToolButton):
+        name = getattr(b, "_symbol", None)
+        if name:
+            b.setIcon(symbol(name, b.iconSize().width()))
+
+
+class Toast(QLabel):
+    """Small confirmation that slides up, stays ~2.5 s, then slides away (optimistic feedback)."""
+
+    def __init__(self, host: QWidget):
+        super().__init__(host)
+        self.setObjectName("Toast")
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.setAccessibleName("Notification")
+        self.hide()
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QParallelAnimationGroup, QPoint, QTimer
+        self._fx = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._fx)
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._leave)
+        self._group = None
+        self._QPoint = QPoint
+        self._Group = QParallelAnimationGroup
+
+    def show_message(self, text: str, ms: int = 2600):
+        self.setText("✓  " + text if not text.startswith(("!", "✓")) else text)
+        self.adjustSize()
+        host = self.parentWidget()
+        x = host.width() - self.width() - 24      # bottom-right, above the floating action bar zone
+        end = self._QPoint(x, host.height() - self.height() - 76)
+        start = self._QPoint(x, end.y() + 16)
+        self._animate(start, end, 0.0, 1.0, theme.NORMAL)
+        self.show()
+        self.raise_()
+        self._timer.start(ms)
+
+    def _animate(self, start, end, o0, o1, ms, then=None):
+        if self._group is not None:
+            self._group.stop()
+        g = self._Group(self)
+        a = QPropertyAnimation(self, b"pos", g)
+        a.setStartValue(start)
+        a.setEndValue(end)
+        a.setDuration(ms)
+        a.setEasingCurve(QEasingCurve.OutQuad)
+        b = QPropertyAnimation(self._fx, b"opacity", g)
+        b.setStartValue(o0)
+        b.setEndValue(o1)
+        b.setDuration(ms)
+        g.addAnimation(a)
+        g.addAnimation(b)
+        if then:
+            g.finished.connect(then)
+        self._group = g
+        g.start()
+
+    def _leave(self):
+        p = self.pos()
+        self._animate(p, self._QPoint(p.x(), p.y() + 16), 1.0, 0.0, theme.FAST, self.hide)
+
+
+class EmptyState(QWidget):
+    """Centered placeholder: monoline symbol, one title line, one sentence, optional call to action."""
+
+    def __init__(self, symbol_name: str, title: str, text: str = "", action: str = "", parent=None):
+        super().__init__(parent)
+        self.setObjectName("Transparent")
+        from .symbols import render
+        v = QVBoxLayout(self)
+        v.setContentsMargins(16, 24, 16, 24)
+        v.setSpacing(8)
+        v.addStretch(1)
+        self.icon = QLabel(self)
+        self.icon.setAlignment(Qt.AlignCenter)
+        self.icon.setPixmap(render(symbol_name, 40, theme.color("tertext")))
+        self._symbol = symbol_name
+        self.title = label(title, "EmptyTitle")
+        self.title.setAlignment(Qt.AlignCenter)
+        self.text = label(text, "Subtle", wrap=True)
+        self.text.setAlignment(Qt.AlignCenter)
+        v.addWidget(self.icon)
+        v.addWidget(self.title)
+        v.addWidget(self.text)
+        self.button = primary_button(action) if action else None
+        if self.button:
+            self.button.setFocusPolicy(Qt.StrongFocus)
+            v.addSpacing(6)
+            v.addWidget(self.button, 0, Qt.AlignCenter)
+        v.addStretch(1)
+
+    def set_texts(self, title: str, text: str = "", action_visible: bool = True):
+        self.title.setText(title)
+        self.text.setText(text)
+        self.text.setVisible(bool(text))
+        if self.button:
+            self.button.setVisible(action_visible)
+
+    def refresh_theme(self):
+        from .symbols import render
+        self.icon.setPixmap(render(self._symbol, 40, theme.color("tertext")))
+
+
+class ActionBar(QFrame):
+    """Floating pill of actions, shown only while something is selected (progressive disclosure)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("ActionBar")
+        self._lay = QHBoxLayout(self)
+        self._lay.setContentsMargins(12, 6, 6, 6)
+        self._lay.setSpacing(6)
+        fx = QGraphicsDropShadowEffect(self)
+        fx.setOffset(0, 4)
+        fx.setBlurRadius(16)
+        fx.setColor(QColor(0, 0, 0, 70 if theme.is_dark() else 26))
+        self.setGraphicsEffect(fx)
+        self._anim = QPropertyAnimation(self, b"maximumHeight", self)
+        self._anim.setDuration(theme.NORMAL)
+        self._anim.setEasingCurve(QEasingCurve.OutQuad)
+        self.setMaximumHeight(0)
+        self._shown = False
+
+    def add(self, w):
+        if isinstance(w, QWidget):
+            self._lay.addWidget(w, 0, Qt.AlignVCenter)
+        else:
+            self._lay.addLayout(w)
+        return w
+
+    def reveal(self, on: bool):
+        if on == self._shown:
+            return
+        self._shown = on
+        self._anim.stop()
+        self._anim.setStartValue(self.maximumHeight())
+        self._anim.setEndValue(self.sizeHint().height() if on else 0)
+        self._anim.start()
+
+    @property
+    def shown(self) -> bool:
+        return self._shown
 
 
 class Switch(QAbstractButton):

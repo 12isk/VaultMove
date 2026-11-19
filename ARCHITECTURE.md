@@ -96,6 +96,26 @@ command line, refuses any path whose components are reparse points inside the sn
 exits on quit, disconnect or 10 idle minutes. Bytes read from the snapshot go through the same verified `.vmtmp`
 path as any copy.
 
+## Look and feel
+
+`app/theme.py` holds the design tokens and one QSS template, following the macOS design skill
+(`~/.claude/skills/macos-design`):
+* hierarchy comes from background levels rather than borders: window `#f5f5f7` / `#1c1c1e`, cards
+  `#fff` / `#2c2c2e`, with dark mode spreading its levels further apart instead of inverting light mode;
+* hairline low-opacity edges and the skill's colours;
+* the 13 px type scale;
+* radii 8 / 6 / 4 px, and controls 28 px tall (34 px for large ones).
+
+Supporting modules:
+* `app/symbols.py` paints the SF-Symbols-style monoline icons.
+* `app/widgets.py` provides `Toast`, `EmptyState`, `ActionBar` and `kbd()` shortcut chips.
+
+Deliberate deviations from the skill:
+* The real Windows title bar is kept instead of faked traffic lights. The spec requires it, and Snap layouts and
+  accessibility depend on it.
+* Segoe UI Variable stands in for SF Pro.
+* There is no backdrop blur (Qt Widgets can't do it), so solid background levels are used instead.
+
 ## Updates (`core/update.py`, `app/updates.py`)
 
 The only code that uses the network, and only after the user clicks **Check for Updates**: no background checks.

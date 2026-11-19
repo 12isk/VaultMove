@@ -139,17 +139,16 @@ class Timeline(QWidget):
     def paintEvent(self, _e):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        t = theme.tokens()
         x = self._line_x()
-        p.setPen(QPen(QColor(t["track"]), 2))
+        p.setPen(QPen(theme.color("track"), 2))
         p.drawLine(int(x), int(self._y(0)), int(x), int(self._y(len(self.times) - 1)))
         fm = QFontMetrics(self.font())
         last_label_y = -100.0
-        sub = QColor(t["subtext"])
+        sub = theme.color("subtext")
         for i, tm in enumerate(self.times):
             y = self._y(i)
             p.setPen(Qt.NoPen)
-            p.setBrush(QColor(t["scroll"]))
+            p.setBrush(theme.color("tertext"))
             p.drawEllipse(QRectF(x - 3, y - 3, 6, 6))
             if abs(y - last_label_y) >= fm.height() + 4 and abs(y - self._marker) > fm.height():
                 p.setPen(sub)
@@ -159,7 +158,7 @@ class Timeline(QWidget):
                 last_label_y = y
         # Selected marker + pill
         y = self._marker
-        acc = QColor(t["accent"])
+        acc = theme.color("accent")
         p.setPen(Qt.NoPen)
         p.setBrush(acc)
         p.drawEllipse(QRectF(x - 7, y - 7, 14, 14))

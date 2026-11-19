@@ -40,12 +40,16 @@
         <translation>Aperçu…</translation>
     </message>
     <message>
-        <source>Show what would be copied and freed, without changing anything</source>
-        <translation>Montrer ce qui serait copié et libéré, sans rien modifier</translation>
+        <source>Show what would be copied and freed, without changing anything (Ctrl+P)</source>
+        <translation>Montrer ce qui serait copié et libéré, sans rien modifier (Ctrl+P)</translation>
     </message>
     <message>
         <source>Stop</source>
         <translation>Arrêter</translation>
+    </message>
+    <message>
+        <source>Stop the running backup (Ctrl+.)</source>
+        <translation>Arrêter la sauvegarde en cours (Ctrl+.)</translation>
     </message>
     <message>
         <source>Backup drive name</source>
@@ -68,16 +72,28 @@
         <translation>Jours avant de libérer de l’espace</translation>
     </message>
     <message>
-        <source>Add a folder</source>
-        <translation>Ajouter un dossier</translation>
+        <source>Add a folder (Ctrl+N)</source>
+        <translation>Ajouter un dossier (Ctrl+N)</translation>
     </message>
     <message>
-        <source>Remove the selected folder</source>
-        <translation>Retirer le dossier sélectionné</translation>
+        <source>Remove the selected folder (Delete)</source>
+        <translation>Retirer le dossier sélectionné (Suppr)</translation>
     </message>
     <message>
         <source>Folders to back up</source>
         <translation>Dossiers à sauvegarder</translation>
+    </message>
+    <message>
+        <source>No folders yet</source>
+        <translation>Aucun dossier pour l’instant</translation>
+    </message>
+    <message>
+        <source>Add the folders you want to protect, or drop them here from Explorer.</source>
+        <translation>Ajoutez les dossiers à protéger, ou déposez-les ici depuis l’Explorateur.</translation>
+    </message>
+    <message>
+        <source>Add a Folder…</source>
+        <translation>Ajouter un dossier…</translation>
     </message>
     <message>
         <source>Activity log</source>
@@ -120,10 +136,6 @@
         <translation>Désactivé. VaultMove se contente de copier ; il ne retire jamais rien de ce PC.</translation>
     </message>
     <message>
-        <source>No folders yet. Click + to add one.</source>
-        <translation>Aucun dossier pour l’instant. Cliquez sur + pour en ajouter un.</translation>
-    </message>
-    <message>
         <source>Local disk</source>
         <translation>Disque local</translation>
     </message>
@@ -134,6 +146,10 @@
     <message>
         <source>The preview could not be completed. See the activity log.</source>
         <translation>L’aperçu n’a pas pu aboutir. Consultez le journal d’activité.</translation>
+    </message>
+    <message>
+        <source>Drop folders here</source>
+        <translation>Déposez des dossiers ici</translation>
     </message>
     <message>
         <source>Not connected</source>
@@ -184,8 +200,20 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
         <translation>Aperçu indisponible : %1</translation>
     </message>
     <message>
+        <source>Removed “%1”; its copies stay on the backup drive</source>
+        <translation>« %1 » retiré ; ses copies restent sur le disque de sauvegarde</translation>
+    </message>
+    <message>
         <source>%1 free of %2</source>
         <translation>%1 libres sur %2</translation>
+    </message>
+    <message>
+        <source>Added “%1”</source>
+        <translation>« %1 » ajouté</translation>
+    </message>
+    <message>
+        <source>Added %1 folders</source>
+        <translation>%1 dossiers ajoutés</translation>
     </message>
     <message>
         <source>Not backed up yet</source>
@@ -272,6 +300,14 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
         <translation>%1 fichiers vérifiés, %2 copiés</translation>
     </message>
     <message>
+        <source>Backup complete: %1 files copied (%2).</source>
+        <translation>Sauvegarde terminée : %1 fichiers copiés (%2).</translation>
+    </message>
+    <message>
+        <source>%1 freed on this PC.</source>
+        <translation>%1 libérés sur ce PC.</translation>
+    </message>
+    <message>
         <source>Space freed</source>
         <translation>Espace libéré</translation>
     </message>
@@ -290,10 +326,6 @@ Les copies déjà présentes sur le disque de sauvegarde sont conservées et res
     <message>
         <source>%1 files copied (%2).</source>
         <translation>%1 fichiers copiés (%2).</translation>
-    </message>
-    <message>
-        <source>%1 freed on this PC.</source>
-        <translation>%1 libérés sur ce PC.</translation>
     </message>
     <message>
         <source>%1 freed on this PC. Copies are safe on your backup drive.</source>
@@ -690,8 +722,8 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Aperçu terminé : %1 fichiers (%2) seraient libérés maintenant, %3 de plus (%4) après cette sauvegarde.</translation>
     </message>
     <message>
-        <source>Settings (Ctrl+,)</source>
-        <translation>Réglages (Ctrl+,)</translation>
+        <source>General</source>
+        <translation>Général</translation>
     </message>
     <message>
         <source>Back Up</source>
@@ -700,6 +732,74 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
     <message>
         <source>Browse &amp;&amp; Restore</source>
         <translation>Parcourir et restaurer</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Raccourcis clavier</translation>
+    </message>
+    <message>
+        <source>Search all versions</source>
+        <translation>Rechercher dans toutes les versions</translation>
+    </message>
+    <message>
+        <source>Settings (Ctrl+,)</source>
+        <translation>Réglages (Ctrl+,)</translation>
+    </message>
+    <message>
+        <source>Stop the running backup</source>
+        <translation>Arrêter la sauvegarde en cours</translation>
+    </message>
+    <message>
+        <source>Back Up page</source>
+        <translation>Page Sauvegarde</translation>
+    </message>
+    <message>
+        <source>Browse &amp;&amp; Restore page</source>
+        <translation>Page Parcourir et restaurer</translation>
+    </message>
+    <message>
+        <source>Close the window (keeps running)</source>
+        <translation>Fermer la fenêtre (VaultMove continue)</translation>
+    </message>
+    <message>
+        <source>Add a folder</source>
+        <translation>Ajouter un dossier</translation>
+    </message>
+    <message>
+        <source>Remove the selected folder</source>
+        <translation>Retirer le dossier sélectionné</translation>
+    </message>
+    <message>
+        <source>Open folder</source>
+        <translation>Ouvrir le dossier</translation>
+    </message>
+    <message>
+        <source>Up one folder</source>
+        <translation>Dossier parent</translation>
+    </message>
+    <message>
+        <source>Restore</source>
+        <translation>Restaurer</translation>
+    </message>
+    <message>
+        <source>Restore To…</source>
+        <translation>Restaurer vers…</translation>
+    </message>
+    <message>
+        <source>Where Is It?</source>
+        <translation>Où est-il ?</translation>
+    </message>
+    <message>
+        <source>Move along the timeline</source>
+        <translation>Se déplacer sur la chronologie</translation>
+    </message>
+    <message>
+        <source>Clear the search</source>
+        <translation>Effacer la recherche</translation>
+    </message>
+    <message>
+        <source>Settings saved</source>
+        <translation>Réglages enregistrés</translation>
     </message>
     <message>
         <source>VaultMove is still running</source>
@@ -742,40 +842,24 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Dossier parent (Retour arrière)</translation>
     </message>
     <message>
-        <source>Up one folder</source>
-        <translation>Dossier parent</translation>
-    </message>
-    <message>
-        <source>Search all versions…</source>
-        <translation>Rechercher dans toutes les versions…</translation>
-    </message>
-    <message>
-        <source>Search all versions</source>
-        <translation>Rechercher dans toutes les versions</translation>
-    </message>
-    <message>
         <source>Files</source>
         <translation>Fichiers</translation>
     </message>
     <message>
-        <source>Where Is It?</source>
-        <translation>Où est-il ?</translation>
+        <source>Show the history of the selected file (Ctrl+I)</source>
+        <translation>Afficher l’historique du fichier sélectionné (Ctrl+I)</translation>
     </message>
     <message>
-        <source>Show the history of the selected file</source>
-        <translation>Afficher l’historique du fichier sélectionné</translation>
+        <source>Restore into a folder you choose (Ctrl+Shift+R)</source>
+        <translation>Restaurer dans un dossier de votre choix (Ctrl+Maj+R)</translation>
     </message>
     <message>
-        <source>Restore To…</source>
-        <translation>Restaurer vers…</translation>
+        <source>Put the selected items back where they were (existing files are never overwritten) (Ctrl+R)</source>
+        <translation>Remettre les éléments sélectionnés à leur place (les fichiers existants ne sont jamais écrasés) (Ctrl+R)</translation>
     </message>
     <message>
-        <source>Restore</source>
-        <translation>Restaurer</translation>
-    </message>
-    <message>
-        <source>Put the selected items back where they were (existing files are never overwritten)</source>
-        <translation>Remettre les éléments sélectionnés à leur place (les fichiers existants ne sont jamais écrasés)</translation>
+        <source>Select files or folders to restore them. Drag files out to copy them anywhere.</source>
+        <translation>Sélectionnez des fichiers ou des dossiers pour les restaurer. Faites glisser des fichiers pour les copier où vous voulez.</translation>
     </message>
     <message>
         <source>Restore to which folder?</source>
@@ -786,28 +870,56 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
         <translation>Restauration…</translation>
     </message>
     <message>
-        <source>No backup index found yet. Connect your backup drive and run a backup.</source>
-        <translation>Aucun index de sauvegarde pour l’instant. Branchez votre disque de sauvegarde et lancez une sauvegarde.</translation>
+        <source>The backup drive is not connected: you are browsing the saved index. Connect the drive to restore.</source>
+        <translation>Le disque de sauvegarde n’est pas branché : vous parcourez l’index enregistré. Branchez le disque pour restaurer.</translation>
+    </message>
+    <message>
+        <source>Nothing to browse yet</source>
+        <translation>Rien à parcourir pour l’instant</translation>
     </message>
     <message>
         <source>Add a folder on the Back Up page first.</source>
         <translation>Ajoutez d’abord un dossier dans la page Sauvegarde.</translation>
     </message>
     <message>
-        <source>Nothing was backed up in this folder at that time.</source>
-        <translation>Rien n’était sauvegardé dans ce dossier à ce moment-là.</translation>
+        <source>No backups yet</source>
+        <translation>Aucune sauvegarde pour l’instant</translation>
+    </message>
+    <message>
+        <source>Connect your backup drive and run a backup. Your files will appear here.</source>
+        <translation>Branchez votre disque de sauvegarde et lancez une sauvegarde. Vos fichiers apparaîtront ici.</translation>
     </message>
     <message>
         <source>Search results</source>
         <translation>Résultats de recherche</translation>
     </message>
     <message>
-        <source>The backup drive is not connected: you are browsing the saved index. Connect the drive to restore.</source>
-        <translation>Le disque de sauvegarde n’est pas branché : vous parcourez l’index enregistré. Branchez le disque pour restaurer.</translation>
+        <source>Could not read the index</source>
+        <translation>Impossible de lire l’index</translation>
+    </message>
+    <message>
+        <source>No matches</source>
+        <translation>Aucun résultat</translation>
+    </message>
+    <message>
+        <source>Nothing here at that time</source>
+        <translation>Rien ici à ce moment-là</translation>
+    </message>
+    <message>
+        <source>Nothing was backed up in this folder at that time. Try a later date on the timeline.</source>
+        <translation>Rien n’était sauvegardé dans ce dossier à ce moment-là. Essayez une date plus récente sur la chronologie.</translation>
+    </message>
+    <message>
+        <source>Search failed</source>
+        <translation>La recherche a échoué</translation>
     </message>
     <message>
         <source>Restore failed: %1</source>
         <translation>Échec de la restauration : %1</translation>
+    </message>
+    <message>
+        <source>Nothing in any version matches “%1”.</source>
+        <translation>Aucune version ne correspond à « %1 ».</translation>
     </message>
     <message>
         <source>%1 selected</source>
@@ -1012,10 +1124,6 @@ La copie la plus récente de chaque fichier est toujours conservée.</translatio
     <message>
         <source>Choose the backup folder</source>
         <translation>Choisir le dossier de sauvegarde</translation>
-    </message>
-    <message>
-        <source>Add a Folder…</source>
-        <translation>Ajouter un dossier…</translation>
     </message>
     <message>
         <source>I understand that originals will be removed from this PC after their copy is verified on the backup drive (Recycle Bin during the first week).</source>
