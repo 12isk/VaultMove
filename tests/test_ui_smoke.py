@@ -319,7 +319,11 @@ def test_this_pc_card_shows_storage(qtbot, ctrl):
     name, bar, free = rows[0]
     assert "(" in name.text() and ":" in name.text()
     assert "free of" in free.text()
-    assert 0 < bar.value() <= 1000
+    # The bar shows the drive's real usage (CI runners can have a nearly empty drive -> 0).
+    import shutil
+    root = tab.pc_drives(ctrl.cfg)[0][0]
+    u = shutil.disk_usage(root)
+    assert bar.value() == int(1000 * (u.total - u.free) / max(1, u.total))
 
 
 def test_update_dialog_offers_newer_version(qtbot, ctrl, monkeypatch):
