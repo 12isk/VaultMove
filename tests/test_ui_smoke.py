@@ -401,3 +401,57 @@ def test_settings_cloud_offload_needs_warning(qtbot, ctrl, monkeypatch, answer):
     s._save()
     assert ctrl.cfg.offload_cloud is (answer == "yes")
     assert cfgmod.load(ctrl.cfg_dir).offload_cloud is (answer == "yes")
+
+
+def test_fit_and_clamp_math():
+    from PySide6.QtCore import QRect
+    from vaultmove.app.screens import clamp_rect, fit_rect
+    # 1920x1080 at 150 % = 1280x720 logical: the 1060x740 main window must shrink to fit.
+    w, h = fit_rect(1060, 740, QRect(0, 0, 1280, 672))
+    assert w == 1060 and h <= 672 - 32
+    assert fit_rect(600, 400, QRect(0, 0, 2560, 1400)) == (600, 400)   # never grows
+    # A window left off-screen (display came back smaller) is pulled back and shrunk.
+    assert clamp_rect(QRect(3000, 900, 1100, 800), QRect(0, 0, 1280, 720)) == (180, 0, 1100, 720)
+    assert clamp_rect(QRect(-50, -20, 400, 300), QRect(0, 0, 1280, 720)) == (0, 0, 400, 300)
+
+
+def test_main_window_fits_its_screen(qtbot, ctrl):
+    ctrl.show_window()
+    w = ctrl.window
+    qtbot.waitExposed(w)
+    avail = w.screen().availableGeometry()
+    assert w.width() <= avail.width() and w.height() <= avail.height()
+
+
+def test_screen_watcher_refits_windows(qtbot, ctrl, qapp):
+    from vaultmove.app.screens import ScreenWatcher
+    calls = []
+    sw = ScreenWatcher(qapp, reapply=lambda: calls.append(1))
+    ctrl.show_window()
+    w = ctrl.window
+    qtbot.waitExposed(w)
+    avail = w.screen().availableGeometry()
+    w.move(avail.right() + 500, avail.bottom() + 500)   # as if left on a display that went away
+    sw.fix()
+    fg = w.frameGeometry()
+    assert avail.contains(fg.topLeft()), (fg, avail)
+    assert calls == [1]
+    sw.schedule()   # debounced: one fix per burst of display events
+    qtbot.waitUntil(lambda: sw.fixes >= 2, timeout=3000)
+    sw.deleteLater()
+
+
+def test_backup_page_on_wide_and_narrow_windows(qtbot, ctrl):
+    ctrl.show_window()
+    w = ctrl.window
+    qtbot.waitExposed(w)
+    tab = w.backup_tab
+    w.resize(1700, 900)
+    qtbot.waitUntil(lambda: tab.status_card.width() <= tab.MAX_WIDTH, timeout=3000)
+    assert tab.spin_days.width() >= tab.spin_days.fontMetrics().horizontalAdvance("365 days") + 30
+    assert tab.list.height() < 400   # the folder list follows its rows instead of filling the page
+    shot(w, "13_backup_wide")
+    w.resize(w.minimumWidth(), w.minimumHeight())
+    QApplication.processEvents()
+    assert tab.status_card.width() <= w.width()
+    shot(w, "14_backup_narrow")

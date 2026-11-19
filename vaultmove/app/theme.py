@@ -151,6 +151,7 @@ QComboBox { padding-right: 26px; }
 QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 24px; border: none; }
 QComboBox::down-arrow { image: url($img_down); width: 12px; height: 12px; }
 QSpinBox { padding-right: 22px; min-width: 64px; }
+QSpinBox#Days { min-width: 92px; }
 QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 20px; border: none;
                       background: transparent; margin-top: 2px; }
 QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 20px; border: none;
@@ -280,6 +281,10 @@ class ThemeManager(QObject):
             return
         apply(self.app, None)
         self.changed.emit(_dark)
+
+    def reapply(self):
+        """Same theme again: re-polishes every widget (used after a display/scale change)."""
+        apply(self.app, _dark)
 
     def set_forced(self, dark: bool | None):
         self.forced = dark

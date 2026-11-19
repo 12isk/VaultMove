@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.2
+
+* **Display scaling:** after the screen turned off and back on, the window could come back drawn too small (at
+  100 % instead of your Windows scaling). VaultMove now re-attaches its windows to the real screen and redraws
+  them at the right scale whenever a display is added, removed or changes scale.
+* **Window sizes:** windows open at a size that fits the screen (the main window used to be taller than a
+  1080p screen at 150 %) and are kept inside it. The smallest main window is now 720 × 480.
+* **Resizing:** on wide windows the Back Up page stays centred instead of stretching edge to edge; the folder list
+  is as tall as its folders; the "days" box no longer cuts off its text; Settings scrolls when the screen is short.
+
 ## 1.1.1
 
 * **Free space in OneDrive folders (opt-in).** New setting *Cloud folders (OneDrive…)* in Settings:

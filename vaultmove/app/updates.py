@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QDialog, QPlainTextEdit, QProgressBar, QPushButton
 from .. import __version__
 from ..core import update
 from .i18n import tr
+from .screens import fit_to_screen
 from .widgets import hbox, human_size, label, primary_button
 from .workers import run_async
 
@@ -28,7 +29,7 @@ class UpdateDialog(QDialog):
         self.mode = update.install_mode()
         self._cancel = threading.Event()
         self.setWindowTitle(tr("Check for Updates"))
-        self.resize(560, 400)
+        fit_to_screen(self, 560, 400, center=False)
         v = QVBoxLayout(self)
         v.setContentsMargins(22, 20, 22, 16)
         v.setSpacing(10)

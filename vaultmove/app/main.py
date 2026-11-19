@@ -88,6 +88,8 @@ def main(argv=None) -> int:
         lang = "auto"
     i18n.install(app, lang)
     tm = theme.ThemeManager(app, {"light": False, "dark": True}.get(args.theme))
+    from .screens import ScreenWatcher
+    ScreenWatcher(app, reapply=tm.reapply)
     ctrl = AppController(app, cfg_dir, portable=cfgmod.is_portable(["--portable"] if args.portable else None),
                          theme_mgr=tm)
     inst.showRequested.connect(ctrl.show_window)
@@ -135,7 +137,9 @@ def selftest(out_path: str) -> int:
         tr_obj = i18n.install(app, "fr")
         lines.append(f"pyside {pyside_version}; french loaded: {tr_obj is not None} "
                      f"({type(tr_obj).__name__ if tr_obj else '-'})")
-        theme.ThemeManager(app)
+        tm = theme.ThemeManager(app)
+        from .screens import ScreenWatcher
+        ScreenWatcher(app, reapply=tm.reapply).fix()
         ctrl = AppController(app, cdir, enable_tray=False, enable_watch=False, enable_timer=False)
         ctrl.show_window()
         ctrl.window.set_tab(1)

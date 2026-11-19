@@ -64,6 +64,9 @@ PowerShell: `(Get-Item C:\VMTest\old.txt).LastWriteTime = (Get-Date).AddDays(-90
 14. **Display**: set Windows scaling to 150 % and 200 % and switch light/dark mode while VaultMove is open: text is
     crisp and the theme follows. Tab through the Back Up page and the wizard with the keyboard only. Narrator reads
     the button and list names.
+    With VaultMove open, let the screen turn off (or close and reopen the lid, or press Win+P → *PC screen only* /
+    *Duplicate*), then wake it: the window is drawn at the same scale as before, inside the screen. Resize the
+    window from its smallest size to maximised: nothing is cut off; on a wide window the Back Up cards stay centred.
 15. **Laptop**: unplug the charger below the battery threshold (Settings). Scheduled backups pause; plugging back in
     resumes them. Sleep and wake: a backup check happens within a minute.
 16. **Uninstall**: Settings → Apps → VaultMove → Uninstall. Choose whether to keep settings. The backup drive is

@@ -14,6 +14,7 @@ from ..core import fsutil, vault, winapi
 from ..core.config import SourceCfg, make_source_id
 from ..core.engine import Engine
 from ..core.errors import VaultMoveError
+from .screens import fit_to_screen
 from . import icon as icons
 from .backup_tab import validate_new_source
 from .i18n import tr
@@ -330,7 +331,7 @@ class SetupWizard(QDialog):
         self.drive_only = drive_only
         self.setWindowTitle(tr("Set up VaultMove") if not drive_only else tr("Change backup drive"))
         self.setWindowIcon(icons.make_icon())
-        self.resize(720, 560)
+        fit_to_screen(self, 720, 560, center=False)
         v = QVBoxLayout(self)
         v.setContentsMargins(26, 20, 26, 18)
         v.setSpacing(14)

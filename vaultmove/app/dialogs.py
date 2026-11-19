@@ -10,10 +10,11 @@ from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
                                QHeaderView, QInputDialog, QLabel, QMessageBox, QPlainTextEdit, QPushButton,
-                               QSpinBox, QTableView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+                               QScrollArea, QSpinBox, QTableView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from ..core import catalog, vault
 from .i18n import LANGUAGES, N_, tr
+from .screens import fit_to_screen
 from .widgets import Card, fmt_datetime, hbox, human_size, label, primary_button
 from .workers import run_async
 
@@ -60,7 +61,7 @@ class PreviewDialog(QDialog):
     def __init__(self, res, parent=None, accept_text: str | None = None):
         super().__init__(parent)
         self.setWindowTitle(tr("Preview"))
-        self.resize(860, 560)
+        fit_to_screen(self, 860, 560, center=False)
         v = QVBoxLayout(self)
         v.setContentsMargins(20, 18, 20, 16)
         v.setSpacing(12)
@@ -129,7 +130,7 @@ class OffloadDialog(QDialog):
         self.previewed = False
         self._was_enabled = ctrl.cfg.offload.enabled
         self.setWindowTitle(tr("Free up space on this PC"))
-        self.resize(560, 380)
+        fit_to_screen(self, 560, 380, center=False)
         v = QVBoxLayout(self)
         v.setContentsMargins(22, 20, 22, 16)
         v.setSpacing(12)
@@ -249,9 +250,20 @@ class SettingsDialog(QDialog):
         self.ctrl = ctrl
         c = ctrl.cfg
         self.setWindowTitle(tr("Settings"))
-        self.resize(620, 640)
-        v = QVBoxLayout(self)
-        v.setContentsMargins(20, 18, 20, 14)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 14)
+        outer.setSpacing(8)
+        # The body scrolls, so the dialog fits small or highly scaled screens; Save/Cancel stay visible.
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        body = QWidget()
+        body.setObjectName("Page")
+        scroll.setWidget(body)
+        outer.addWidget(scroll, 1)
+        v = QVBoxLayout(body)
+        v.setContentsMargins(20, 18, 20, 4)
         v.setSpacing(12)
         v.addWidget(label(tr("Settings"), "Title"))
         card = Card(shadow=False)
@@ -339,7 +351,13 @@ class SettingsDialog(QDialog):
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         bb.accepted.connect(self._save)
         bb.rejected.connect(self.reject)
-        v.addWidget(bb)
+        bbl = QHBoxLayout()
+        bbl.setContentsMargins(20, 0, 20, 0)
+        bbl.addWidget(bb)
+        outer.addLayout(bbl)
+        # Only the height scrolls: never narrower than the widest row.
+        self.setMinimumSize(body.minimumSizeHint().width() + scroll.verticalScrollBar().sizeHint().width() + 4, 360)
+        fit_to_screen(self, 740, 700, center=False)
 
     def _save(self):
         c = self.ctrl.cfg
@@ -450,7 +468,7 @@ class HistoryDialog(QDialog):
     def __init__(self, ctrl, source_id: str, rel_path: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("File history"))
-        self.resize(760, 520)
+        fit_to_screen(self, 760, 520, center=False)
         v = QVBoxLayout(self)
         v.setContentsMargins(20, 18, 20, 14)
         v.addWidget(label(os.path.basename(rel_path), "Title"))

@@ -28,6 +28,19 @@ def header(symbol_name: str, text: str) -> QHBoxLayout:
 
 
 class BackupTab(QScrollArea):
+    MAX_WIDTH = 1180
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        if hasattr(self, "_outer"):
+            side = max(0, (self.viewport().width() - self.MAX_WIDTH) // 2)
+            self._outer.setContentsMargins(side, 0, side, 0)
+
+    def _fit_list(self):
+        n = self.list.count()
+        row = self.list.sizeHintForRow(0) if n else self.list.fontMetrics().height() + 10
+        rows = max(2, min(n, 8))
+        self.list.setFixedHeight(rows * max(row, 1) + 2 * self.list.frameWidth() + 8)
     def __init__(self, ctrl, parent=None):
         super().__init__(parent)
         self.ctrl = ctrl
@@ -37,7 +50,13 @@ class BackupTab(QScrollArea):
         page = QWidget()
         page.setObjectName("Page")
         self.setWidget(page)
-        v = QVBoxLayout(page)
+        # On wide windows the cards stop growing at MAX_WIDTH and stay centred (see resizeEvent).
+        self._outer = QHBoxLayout(page)
+        self._outer.setContentsMargins(0, 0, 0, 0)
+        inner = QWidget(page)
+        inner.setObjectName("Page")
+        self._outer.addWidget(inner)
+        v = QVBoxLayout(inner)
         v.setContentsMargins(2, 6, 2, 6)
         v.setSpacing(16)
 
@@ -123,6 +142,7 @@ class BackupTab(QScrollArea):
         self.spin_days.setRange(1, 3650)
         self.spin_days.setSuffix(" " + tr("days"))
         self.spin_days.setAccessibleName(tr("Days before freeing space"))
+        self.spin_days.setObjectName("Days")   # wider min-width in the theme: fits "3650 days"
         self.free_card.add(hbox(self.sw_offload, 6, self.lb_off_a, self.spin_days, None))
         self.lb_off_info = label("", "Subtle", wrap=True)
         self.btn_off_preview = QPushButton(tr("Preview…"))
@@ -140,7 +160,7 @@ class BackupTab(QScrollArea):
                                    label(tr("Drop folders here"), "Caption"), 8, self.btn_add, self.btn_remove))
         self.list = QListWidget()
         self.list.setAccessibleName(tr("Folders to back up"))
-        self.list.setMinimumHeight(120)
+        self.list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)   # height follows the rows
         self.list.setUniformItemSizes(True)
         self.folders_card.add(self.list)
         self.folders_empty = EmptyState("folder", tr("No folders yet"),
@@ -258,6 +278,7 @@ class BackupTab(QScrollArea):
             it.setData(Qt.UserRole, s.path)
             it.setToolTip(s.path)
             self.list.addItem(it)
+        self._fit_list()
         self.list.setVisible(bool(c.sources))
         self.folders_empty.setVisible(not c.sources)
         self.btn_remove.setVisible(bool(c.sources))

@@ -12,6 +12,7 @@ from PySide6.QtGui import QAction, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QSizePolicy,
                                QStackedWidget, QVBoxLayout, QWidget)
 
+from .screens import fit_to_screen
 from . import icon as icons
 from . import theme
 from .backup_tab import BackupTab
@@ -96,8 +97,8 @@ class MainWindow(QMainWindow):
         self.ctrl = ctrl
         self.setWindowTitle("VaultMove")
         self.setWindowIcon(icons.make_icon())
-        self.resize(1060, 740)
-        self.setMinimumSize(860, 580)
+        self.setMinimumSize(720, 480)
+        fit_to_screen(self, 1060, 740)
         self._told_tray = False
 
         central = QWidget(self)
