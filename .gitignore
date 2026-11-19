@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest-tmp*/
+.pytest-perf/
+build/
+dist/
+screenshots/
+test-results.xml
+*.qm
+packaging/vaultmove.ico
+packaging/vaultmove.png
+.venv/

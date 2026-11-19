@@ -1,0 +1,5 @@
+# Test and build tools (pinned). Only needed in CI or for running tests from source.
+pytest==8.3.4
+pytest-qt==4.4.0
+pyinstaller==6.11.1
+pyinstaller-hooks-contrib==2024.11
