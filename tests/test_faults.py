@@ -209,19 +209,25 @@ def test_clock_set_backwards_keeps_young_files(env):
     assert r.status == "ok"
 
 
-def test_cancel_mid_run_is_clean(env):
+def test_cancel_mid_run_is_clean(env, monkeypatch):
     for i in range(50):
         env.write(f"f{i}.bin", os.urandom(2000))
     ev = threading.Event()
-    n = {"c": 0}
+    real = copier.write_verified_tmp
+    calls = {"n": 0}
 
-    def prog(d):
-        n["c"] += 1
-        if n["c"] > 3:
-            ev.set()
+    def cancel_on_tenth(chunks, final, mtime, **kw):
+        # Deterministic: independent of machine speed and of the progress throttle.
+        calls["n"] += 1
+        if calls["n"] == 10:
+            ev.set()  # the Stop button pressed while the 10th file is being copied
+        return real(chunks, final, mtime, **kw)
 
-    r = env.engine(cancel=ev, progress=prog).run()
+    monkeypatch.setattr(engmod, "write_verified_tmp", cancel_on_tenth)
+    r = env.engine(cancel=ev).run()
     assert r.status == "cancelled"
+    assert calls["n"] == 10  # stopped right there, nothing after
+    monkeypatch.setattr(engmod, "write_verified_tmp", real)
     assert_consistent(env)
     r = env.run()
     assert r.status == "ok"
